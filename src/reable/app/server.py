@@ -130,6 +130,8 @@ class App:
                     return self._json(200, L.state())
                 if method == "GET" and path == "/api/plugins":
                     return self._json(200, L.plugins())
+                if method == "GET" and path == "/api/ui-events":
+                    return self._json(200, {"events": L.pop_ui()})
                 if method == "GET" and path == "/api/beta":
                     return self._json(200, L.beta_state())
                 if method == "GET" and path == "/api/old-sets":

@@ -585,6 +585,16 @@
     return false;
   };
 
+  /* Messages de la fenêtre native (menu « À propos », dépôt d'un dossier) : relevés toutes les demi-secondes. */
+  setInterval(async () => {
+    let r;
+    try { r = await api("/api/ui-events"); } catch (e) { return; }
+    for (const ev of r.events || []) {
+      if (ev.type === "about") { S.about = true; render(); }
+      else if (ev.type === "drop") window.reableDropped(ev.data);
+    }
+  }, 500);
+
   (async function init() {
     try {
       S.server = await api("/api/state");

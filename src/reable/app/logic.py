@@ -69,6 +69,16 @@ class AppLogic:
         self.items: list[PlanItem] = []
         self.opts = self.load_options()
         self.last_written: list[str] = []
+        self.ui_events: list[dict] = []          # messages de la fenêtre native vers la page (menu, dépôt) : la page les relève
+
+    # ---- messages de la fenêtre native
+    def push_ui(self, event: dict) -> None:
+        self.ui_events.append(event)
+        del self.ui_events[:-20]
+
+    def pop_ui(self) -> list[dict]:
+        out, self.ui_events = self.ui_events, []
+        return out
 
     # ---- réglages
     @staticmethod

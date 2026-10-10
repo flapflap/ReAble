@@ -267,3 +267,11 @@ def test_open_url_only_accepts_the_reable_repository(app, monkeypatch):
     assert call(app, "POST", "/api/open-url", {"url": "https://exemple.com"})[0] == 400
     assert call(app, "POST", "/api/open-url", {"url": "https://github.com/flapflap/ReAble-evil/x"})[0] == 400
     assert [c[1] for c in opened] == ["https://github.com/flapflap/ReAble/issues/new", "https://github.com/flapflap/ReAble"]
+
+
+def test_native_window_messages_are_picked_up_once_by_the_page(app):
+    app.logic.push_ui({"type": "about"})
+    app.logic.push_ui({"type": "drop", "data": {"path": "/tmp"}})
+    _, r = call(app, "GET", "/api/ui-events")
+    assert [e["type"] for e in r["events"]] == ["about", "drop"]
+    assert call(app, "GET", "/api/ui-events")[1]["events"] == []

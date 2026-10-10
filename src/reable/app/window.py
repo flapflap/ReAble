@@ -1,7 +1,6 @@
 """Fenêtre native (pywebview) autour du serveur local : sélecteur de dossier macOS, glisser-déposer, fermeture sûre."""
 from __future__ import annotations
 
-import json
 import socket
 import time
 from pathlib import Path
@@ -55,6 +54,43 @@ def dropped_folder(path: str | None) -> dict:
     return {"error": "Déposez un dossier de projets (ou un projet Live .als), pas un autre type de fichier."}
 
 
+_about_handler = None      # référence conservée : macOS ne garde pas le gestionnaire en vie
+
+
+def install_about_item(push) -> bool:
+    """Branche l'entrée « À propos de ReAble » du menu ReAble (le menu en gras) sur notre fenêtre,
+    à la place du panneau standard qui n'affiche que la version. Renvoie False hors macOS."""
+    global _about_handler
+    try:
+        import objc
+        from AppKit import NSApp
+        from Foundation import NSObject
+        from PyObjCTools import AppHelper
+    except ImportError:
+        return False
+
+    class AboutHandler(NSObject):
+        @objc.python_method
+        def bind(self, push_fn):
+            self.push = push_fn
+            return self
+
+        def showAbout_(self, sender):
+            self.push({"type": "about"})        # la page relève ce message (evaluate_js est refusé par la politique de sécurité de la page)
+
+    def install():
+        app_menu = NSApp.mainMenu().itemAtIndex_(0).submenu() if NSApp.mainMenu() else None
+        if app_menu is None or app_menu.numberOfItems() == 0:
+            return
+        item = app_menu.itemAtIndex_(0)                      # « À propos de ReAble » : première entrée du menu de l'application
+        global _about_handler
+        _about_handler = AboutHandler.alloc().init().bind(push)
+        item.setTarget_(_about_handler)
+        item.setAction_("showAbout:")
+    AppHelper.callAfter(install)
+    return True
+
+
 def request_close(app: App, confirm) -> bool:
     """Décide si la fenêtre peut se fermer. Pendant une tâche : demande confirmation, puis l'arrête proprement.
 
@@ -88,21 +124,17 @@ def run(port: int | None = None) -> int:
     def on_drop(event):
         files = (event.get("dataTransfer") or {}).get("files") or []
         path = files[0].get("pywebviewFullPath") if files else None
-        window.evaluate_js(f"window.reableDropped({json.dumps(dropped_folder(path))})")
+        app.logic.push_ui({"type": "drop", "data": dropped_folder(path)})
 
     def on_loaded():
         from webview.dom import DOMEventHandler
         window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)   # empêche la navigation du navigateur
     window.events.loaded += on_loaded
-    def show_about():
-        window.evaluate_js("window.reableShowAbout && window.reableShowAbout()")
+    def on_shown():
+        install_about_item(app.logic.push_ui)
+    window.events.shown += on_shown
     try:
-        from webview.menu import Menu, MenuAction
-        menu = [Menu("ReAble", [MenuAction("À propos de ReAble", show_about)])]
-    except ImportError:                      # ancienne version de pywebview : pas de menu personnalisé
-        menu = []
-    try:
-        webview.start(menu=menu)
+        webview.start()
     finally:
         app.stop()
     return 0
