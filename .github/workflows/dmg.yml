@@ -42,6 +42,38 @@ jobs:
           token: ${{ secrets.LIBRARY_TOKEN || github.token }}
           path: library
 
+      # Signature de développeur + notarisation : uniquement si les secrets du dépôt existent (sinon signature ad hoc).
+      # Secrets : MACOS_CERT_P12_BASE64, MACOS_CERT_PASSWORD (certificat « Developer ID Application » exporté en .p12),
+      #           APPLE_ID, APPLE_APP_PASSWORD (mot de passe d'application), APPLE_TEAM_ID.
+      - name: Certificat de signature (trousseau temporaire)
+        env:
+          CERT_B64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$CERT_B64" ] || [ -z "$CERT_PASSWORD" ]; then
+            echo "Pas de certificat configuré : signature ad hoc (avertissement Gatekeeper)."; exit 0
+          fi
+          KC="$RUNNER_TEMP/reable.keychain-db"; KCPASS="$(uuidgen)"
+          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KCPASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KCPASS" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KCPASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" login.keychain
+          rm -f "$RUNNER_TEMP/cert.p12"
+          IDENTITY="$(security find-identity -v -p codesigning "$KC" | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)"/\1/')"
+          if [ -z "$IDENTITY" ]; then echo "::error::Aucun certificat « Developer ID Application » dans le .p12"; exit 1; fi
+          echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          echo "NOTARY_APPLE_ID=$NOTARY_APPLE_ID" >> "$GITHUB_ENV"
+          echo "NOTARY_TEAM_ID=$NOTARY_TEAM_ID" >> "$GITHUB_ENV"
+          echo "::add-mask::$NOTARY_PASSWORD"
+          echo "NOTARY_PASSWORD=$NOTARY_PASSWORD" >> "$GITHUB_ENV"
+          echo "Signature avec : $IDENTITY"
+
       - name: Construire ReAble.app et le DMG
         env:
           PYTHON: python
@@ -69,5 +101,5 @@ jobs:
             --title "ReAble — dernière version de main ($VERSION)" \
             --notes "Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon).
 
-          **Application non signée par un développeur Apple.** macOS affiche « ReAble.app non ouvert » : clique sur « Terminé » (pas sur « Placer dans la corbeille »), puis Réglages Système > Confidentialité et sécurité > « Ouvrir quand même ». Ou dans le Terminal :
+          Si macOS affiche « ReAble.app non ouvert » (version non signée par un développeur Apple) : clique sur « Terminé » (pas sur « Placer dans la corbeille »), puis Réglages Système > Confidentialité et sécurité > « Ouvrir quand même ». Ou dans le Terminal :
           \`xattr -dr com.apple.quarantine /Applications/ReAble.app\`"
