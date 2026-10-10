@@ -256,3 +256,14 @@ def test_beta_switch_and_version(app):
     assert call(app, "GET", "/api/beta")[1]["enabled"] is True
     _, state = call(app, "GET", "/api/state")
     assert state["version"] == "0.1"
+
+
+def test_open_url_only_accepts_the_reable_repository(app, monkeypatch):
+    import subprocess
+    opened = []
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: opened.append(cmd))
+    assert call(app, "POST", "/api/open-url", {"url": "https://github.com/flapflap/ReAble/issues/new"})[0] == 200
+    assert call(app, "POST", "/api/open-url", {"url": "https://github.com/flapflap/ReAble"})[0] == 200
+    assert call(app, "POST", "/api/open-url", {"url": "https://exemple.com"})[0] == 400
+    assert call(app, "POST", "/api/open-url", {"url": "https://github.com/flapflap/ReAble-evil/x"})[0] == 400
+    assert [c[1] for c in opened] == ["https://github.com/flapflap/ReAble/issues/new", "https://github.com/flapflap/ReAble"]

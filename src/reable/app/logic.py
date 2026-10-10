@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import platform
 import shutil
 import subprocess
 import time
@@ -104,7 +105,8 @@ class AppLogic:
                 "groups": groups, "summary": summarize(groups) if groups else None,
                 "definitions": len(registry.load_all()),
                 "options": self.opts.to_dict(), "job": cur.snapshot() if cur else None,
-                "written": len(self.last_written), "version": short_version()}
+                "written": len(self.last_written), "version": short_version(),
+                "system": platform.mac_ver()[0] or platform.platform()}
 
     # ---- tâches
     def analyze(self, path: str, template_dirs: list[str] | None = None):
@@ -219,6 +221,16 @@ class AppLogic:
     @staticmethod
     def plugins() -> list[dict]:
         return [{**d.to_dict(), "source": d.source, "name": d.display_name()} for d in registry.load_all()]
+
+    REPO_URL = "https://github.com/flapflap/ReAble"
+
+    @classmethod
+    def open_url(cls, url: str) -> bool:
+        """Ouvre une page du dépôt ReAble dans le navigateur. Rien d'autre : un autre site est refusé."""
+        if not (url == cls.REPO_URL or url.startswith(cls.REPO_URL + "/")):
+            raise ValueError("adresse refusée : seules les pages du projet ReAble s'ouvrent depuis l'application")
+        subprocess.run(["open", url], check=False)
+        return True
 
     # ---- validation d'un plugin (essai dans Live)
     def plugin_test(self, def_id: str) -> dict:

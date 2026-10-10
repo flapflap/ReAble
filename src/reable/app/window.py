@@ -34,6 +34,10 @@ class NativeApi:
         r = self.window.create_file_dialog(webview.FOLDER_DIALOG, directory=str(Path.home() / "Music"))
         return str(r[0]) if r else None
 
+    def open_url(self, url: str) -> bool:
+        from .logic import AppLogic
+        return AppLogic.open_url(url)
+
     def reveal(self, path: str) -> bool:
         from .logic import AppLogic
         return AppLogic.reveal(path)
@@ -91,7 +95,7 @@ def run(port: int | None = None) -> int:
         window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)   # empêche la navigation du navigateur
     window.events.loaded += on_loaded
     def show_about():
-        window.evaluate_js("window.reableShowSettings && window.reableShowSettings()")
+        window.evaluate_js("window.reableShowAbout && window.reableShowAbout()")
     try:
         from webview.menu import Menu, MenuAction
         menu = [Menu("ReAble", [MenuAction("À propos de ReAble", show_about)])]

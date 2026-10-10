@@ -168,3 +168,12 @@ html,body{margin:0;height:100%;background:var(--pr-bg)}
 .pr .block{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:.5px solid var(--pr-border);border-radius:var(--pr-radius-l);background:var(--pr-surface-2)}
 .pr .block .names{display:flex;flex-wrap:wrap;gap:6px}
 .pr .block .names span{padding:2px 8px;border-radius:5px;background:var(--pr-surface);border:.5px solid var(--pr-border);font-size:12px}
+.pr .counts{padding:8px 16px;font-size:12px;color:var(--pr-text-muted);border-bottom:.5px solid var(--pr-border)}
+.pr .summary .counts{padding:4px 0 0;border:0}
+.pr .counts b{color:var(--pr-text);font-variant-numeric:tabular-nums}
+.pr .sidebar .ver{background:none;border:0;text-align:left;font:inherit;font-size:11px;color:var(--pr-text-muted);cursor:pointer}
+.pr .sidebar .ver:hover{text-decoration:underline}
+.pr .dlg.about{align-items:center;text-align:center;width:340px}
+.pr .dlg.about .logo{border-radius:13px}
+.pr .dlg.about .col{display:flex;flex-direction:column;gap:6px;width:100%}
+.pr .dlg.about .row{justify-content:center}

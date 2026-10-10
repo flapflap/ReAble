@@ -95,6 +95,7 @@
     summary: null,
     ptest: null,   // test d'un plugin : { def, created, busy, error }
     beta: { enabled: false },
+    about: false,
   };
   let poll = null;
 
@@ -224,6 +225,34 @@
     S.templateDirs = [...new Set([...S.templateDirs, path])];
     S.path = S.server.folder; startAnalyze();
   }
+  const REPO = "https://github.com/flapflap/ReAble";
+  async function openExternal(url) {
+    const native = window.pywebview && window.pywebview.api && window.pywebview.api.open_url;
+    try { if (native) await window.pywebview.api.open_url(url); else await api("/api/open-url", { url }); } catch (e) { toast(e.message); }
+  }
+  function feedbackUrl(kind) {
+    const sv = S.server || {};
+    const ctx = `\n\n---\nReAble ${sv.version || "?"} · macOS ${sv.system || "?"}`;
+    const bug = kind === "bug";
+    const body = bug ? `**Ce que je faisais**\n\n**Ce que j’attendais**\n\n**Ce qui s’est passé**\n${ctx}` : `**L’idée**\n\n**Pourquoi c’est utile**\n${ctx}`;
+    return `${REPO}/issues/new?template=${bug ? "bug_report.md" : "feature_request.md"}&title=${encodeURIComponent(bug ? "[Bug] " : "[Idée] ")}&body=${encodeURIComponent(body)}`;
+  }
+  function aboutDialog() {
+    const sv = S.server || {};
+    const close = () => { S.about = false; render(); };
+    return h("div", { class: "scrim", role: "presentation", onclick: (e) => { if (e.target === e.currentTarget) close(); } },
+      h("div", { class: "dlg about", role: "dialog", "aria-modal": "true", "aria-labelledby": "about-title" },
+        h("img", { class: "logo", src: "logo.png", alt: "", width: 56, height: 56 }),
+        h("h2", { id: "about-title" }, "ReAble"),
+        h("p", {}, `Version ${sv.version || "?"} · macOS ${sv.system || "?"}`),
+        h("p", {}, "Retrouve et répare les plugins manquants de tes projets Ableton Live. Tes projets d’origine ne sont jamais modifiés."),
+        h("div", { class: "col" },
+          btn("Voir le projet sur GitHub", () => openExternal(REPO), "btn"),
+          btn("Signaler un problème", () => openExternal(feedbackUrl("bug")), "btn"),
+          btn("Proposer une idée", () => openExternal(feedbackUrl("feature")), "btn")),
+        h("div", { class: "row" }, btn("Fermer", close, "btn btn-primary"))));
+  }
+  window.reableShowAbout = () => { S.about = true; render(); };
   async function copyOldList() {
     const r = await api("/api/old-sets");
     try { await navigator.clipboard.writeText(r.sets.join("\n")); toast(`Liste copiée : ${plural(r.sets.length, "projet", "projets")}.`); }
@@ -257,7 +286,7 @@
       nav("Plugins", "box", S.view === "plugins" || S.view === "plugintest", !busy(), openPlugins, S.plugins ? String(S.plugins.length) : ""),
       nav("Réglages", "gear", S.view === "settings", !busy(), openSettings),
       h("div", { class: "safe" }, icon("shield", "", 16), h("span", {}, "Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].")),
-      sv && sv.version ? h("div", { class: "ver" }, `ReAble · version ${sv.version}`) : null);
+      sv && sv.version ? h("button", { type: "button", class: "ver", onclick: () => { S.about = true; render(); } }, `ReAble · version ${sv.version}`) : null);
   }
   const LIB_VIEWS = ["plugins", "plugintest", "settings"];
   function rememberView() { if (!LIB_VIEWS.includes(S.view)) S.prevView = S.view; }
@@ -277,7 +306,6 @@
     return h("div", { class: "titlebar" }, h("img", { class: "logo", src: "logo.png", alt: "", width: 28, height: 28 }),
       h("div", { class: "ttl" }, h("b", {}, "ReAble"), sub ? h("span", {}, sub) : null), h("div", { class: "tools" }, ...tools));
   }
-  function status(left, right) { return h("div", { class: "status" }, h("span", { class: "grow" }, left), right ? h("span", {}, right) : null); }
   /* Le bouton Arrêter est un élément unique, créé une fois et mis à jour sur place : l'interface se redessine plusieurs fois
      par seconde pendant une tâche, et un bouton recréé à chaque fois ferait perdre les clics tombés entre deux redessins. */
   const stopEl = h("button", { type: "button", class: "btn btn-stop", onclick: () => stopJob() });
@@ -305,7 +333,7 @@
       [noDefs(), dropHandlers(h("div", { class: "drop" }, icon("folder", "", 44), h("h2", {}, "Quel dossier de projets analyser ?"),
         h("p", {}, "Glissez un dossier ici, ou choisissez-le. ReAble y cherche les projets Ableton Live (.als) et repère les plugins qui manquent sur ce Mac."),
         h("div", { class: "pathrow" }, h("div", { class: "input" }, input), btn("Choisir…", pickFolder), go)))],
-      status("Aucun projet analysé.", "Rien n’est modifié pendant l’analyse."));
+      null);
   }
   function progressBlock(label, total) {
     const l = S.job && S.job.last, n = l ? l.index : 0, tot = l ? l.total : total || 0;
@@ -325,7 +353,7 @@
     return frame(shortPath(S.path), [stopButton()],
       [progressBlock("projets lus", 0), h("div", { class: "center" }, h("h2", {}, l && l.task === "plan" ? "Vérification de ce qui peut être converti…" : "Analyse en cours…"),
         h("p", {}, l && l.task === "plan" ? "ReAble simule chaque conversion, sans rien écrire. Vous pouvez arrêter à tout moment." : "ReAble lit chaque projet sans le modifier. Vous pouvez arrêter à tout moment."))],
-      status(h("span", {}, h("b", {}, l ? l.index : 0), l && l.task === "plan" ? " vérifiés" : " lus"), "L’analyse est en lecture seule."));
+      null);
   }
   function groupRow(g) {
     const sel = S.selected.has(g.id);
@@ -397,7 +425,10 @@
     return frame(`${baseName(sv.folder)} · ${plural(sv.sets, "projet analysé", "projets analysés")}`, [btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); })],
       [noDefs(), h("div", { class: "center" }, icon("ok", "big", 48), h("h2", {}, title), reasons.map((r) => h("p", {}, r)),
         h("div", { class: "row" }, btn("Voir les plugins", openPlugins)))],
-      status(h("span", {}, plural(sv.sets, "projet analysé", "projets analysés"), " · ", h("b", {}, 0), " à convertir.")));
+      null);
+  }
+  function countsLine(c, d, i, e, extra) {
+    return h("div", { class: "counts" }, h("b", {}, c), " convertis · ", h("b", {}, d), " en réglages par défaut · ", h("b", {}, i), " ignorés · ", h("b", {}, e), e > 1 ? " erreurs" : " erreur", extra ? ` · ${extra}` : "");
   }
   function resultRow(r, i) {
     const k = r.result;
@@ -412,12 +443,11 @@
     const log = S.log.filter((x) => S.logFilter === "all" || (S.logFilter === "warn" && (x.kind === "warn" || x.kind === "err")) || (S.logFilter === "err" && x.kind === "err")).slice(-120);
     const seg = (id, label) => h("span", { class: S.logFilter === id ? "on" : "", role: "button", tabindex: "0", onclick: () => { S.logFilter = id; render(); } }, label);
     return frame(`${dry ? "Essai à blanc" : "Conversion en cours"} · ${baseName(S.server.folder)}`, [stopButton()],
-      [progressBlock("projets", S.job ? S.job.total : 0),
+      [progressBlock("projets", S.job ? S.job.total : 0), countsLine(counts.c, counts.d, counts.i, counts.e),
         h("div", { class: "list" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:170px" }, "État"), h("th", {}, "Projet"))), h("tbody", {}, S.rows.slice(-60).map(resultRow)))),
         h("div", { class: "logpane" }, h("header", {}, "Journal", h("span", { class: "seg", role: "group", "aria-label": "Filtre du journal" }, seg("all", "Tout"), seg("warn", "Avertissements"), seg("err", "Erreurs"))),
           h("div", { class: "log", role: "log", "aria-label": "Journal" }, log.map((x) => h("div", {}, h("time", {}, x.t), h("span", { class: x.kind === "ok" ? "ok" : "" }, x.text)))))],
-      status(h("span", {}, h("b", {}, counts.c), " convertis · ", h("b", {}, counts.d), " en réglages par défaut · ", h("b", {}, counts.i), " ignorés · ", h("b", {}, counts.e), " erreurs"),
-        S.stopping ? "Arrêt en cours : le projet en cours est abandonné proprement." : "Vous pouvez arrêter à tout moment : le projet en cours est abandonné proprement."), inspector(true));
+      null, inspector(true));
   }
   function viewSummary() {
     const res = (S.summary && S.summary.result) || {}, written = res.written || [];
@@ -427,11 +457,11 @@
         btn("Copier la liste", async () => { await navigator.clipboard.writeText(written.join("\n")); toast("Liste copiée."); }, "btn", { disabled: !written.length }),
         btn("Annuler cette conversion", undoAll, "btn", { disabled: !written.length })],
       [h("div", { class: "summary" }, h("h2", {}, `Conversion terminée : ${plural(written.length, "projet converti", "projets convertis")}, ${plural(c.errors || 0, "erreur", "erreurs")}`),
-          h("p", {}, "Les copies sont à côté des originaux, avec [ReAble] dans leur nom. Vos originaux n’ont pas été modifiés.")),
+          h("p", {}, "Les copies sont à côté des originaux, avec [ReAble] dans leur nom. Vos originaux n’ont pas été modifiés."),
+          countsLine(c.converted || 0, c.default || 0, c.skipped || 0, c.errors || 0, S.job && S.job.last ? `durée ${fmtTime(S.job.last.elapsed)}` : "")),
         h("div", { class: "hint" }, icon("info", "", 16), h("div", {}, h("b", {}, "Que vérifier dans Live ? "), "Ouvrez une copie : les pistes dupliquées chargent leur instrument, l’originale est en sourdine ; le nouveau plugin d’effet est placé avant l’ancien, désactivé.")),
         h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Copie créée"), h("th", {}, "Dossier"), h("th", { style: "width:170px" }))), h("tbody", {}, rows))],
-      status(h("span", {}, h("b", {}, c.converted || 0), " convertis · ", h("b", {}, c.default || 0), " en réglages par défaut · ", h("b", {}, c.skipped || 0), " ignorés · ", h("b", {}, c.errors || 0), " erreurs"),
-        S.job && S.job.last ? `Durée : ${fmtTime(S.job.last.elapsed)}` : ""));
+      null);
   }
   function viewStopped() {
     const l = S.summary.last || {}, done = l.index || 0, total = l.total || 0, left = Math.max(0, total - done);
@@ -441,14 +471,14 @@
           h("p", {}, `Le projet qui était en cours a été abandonné proprement : aucun fichier incomplet n’a été laissé. Les ${plural(files.length, "copie déjà faite est conservée", "copies déjà faites sont conservées")}.`)),
         h("div", { class: "center", style: "margin-top:36px" }, icon("shield", "big", 48), h("h2", {}, "Rien n’est abîmé"),
           h("p", {}, "« Reprendre » continue avec les projets restants, sans refaire les premiers. « Annuler ce qui a été fait » met les copies à la corbeille et laisse vos projets d’origine tels quels."))],
-      status(h("span", {}, h("b", {}, files.length), " copies écrites · ", h("b", {}, left), " non traités"), "Arrêté."));
+      null);
   }
   function viewError() {
     return frame("Une erreur est survenue", [btn("Réessayer", () => { S.view = "choose"; render(); }, "btn btn-primary")],
       h("div", { class: "center" }, icon("err", "big", 48), h("h2", {}, "L’opération n’a pas pu aboutir"),
         h("p", {}, S.error || "Erreur inconnue", " ", h("b", { style: "color:var(--pr-text)" }, "Aucun projet d’origine n’a été modifié.")),
         h("div", { class: "row" }, btn("Choisir un autre dossier", () => { S.view = "choose"; render(); }))),
-      status("Aucun projet d’origine modifié."));
+      null);
   }
   const STATUS_LABEL = { validated: ["ok", "Validé"], experimental: ["warn", "À tester · bloqué"], unsupported: ["neu", "Non pris en charge"] };
   const ORIGIN_LABEL = { "intégré": "Fournie avec ReAble", "partagé": "Bibliothèque partagée", "utilisateur": "Ajoutée ou validée par vous" };
@@ -529,7 +559,9 @@
         block("Bibliothèque de plugins",
           h("p", { class: "lead" }, `${plural(sv.definitions || 0, "plugin connu", "plugins connus")}.`),
           h("div", { class: "row" }, btn("Voir les plugins", openPlugins, "btn btn-sm"))),
-        block("À propos", h("p", { class: "lead" }, `ReAble, version ${sv.version || "?"}. Vos projets d’origine ne sont jamais modifiés.`))),
+        block("À propos et retours", h("p", { class: "lead" }, `ReAble, version ${sv.version || "?"}. Un problème, une idée ? Dites-le sur GitHub : le message est pré-rempli avec la version et le système.`),
+          h("div", { class: "row" }, btn("Signaler un problème", () => openExternal(feedbackUrl("bug")), "btn btn-sm"), btn("Proposer une idée", () => openExternal(feedbackUrl("feature")), "btn btn-sm"),
+            btn("Voir le projet sur GitHub", () => openExternal(REPO), "btn btn-sm")))),
       null);
   }
 
@@ -539,9 +571,11 @@
     const active = document.activeElement;
     const keep = active && active.tagName === "INPUT" && active.type === "text" ? { v: active.value, s: active.selectionStart } : null;
     const nodes = VIEWS[S.view]().flat().filter(Boolean);
+    if (S.about) nodes.push(aboutDialog());
     root.replaceChildren(...nodes);
     if (keep) { const i = root.querySelector('input[type="text"]'); if (i) { i.value = keep.v; i.focus(); try { i.setSelectionRange(keep.s, keep.s); } catch (e) { /* ignore */ } } }
   }
+  window.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.about) { S.about = false; render(); } });
   window.addEventListener("beforeunload", (e) => { if (busy()) { e.preventDefault(); e.returnValue = ""; } });
   /* Point d'entrée pour la fenêtre native : « Arrêter et fermer ? » */
   window.reableShowSettings = () => { if (!busy()) openSettings(); };

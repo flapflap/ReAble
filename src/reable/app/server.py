@@ -166,6 +166,8 @@ class App:
                     return self._json(200, L.set_beta(bool(body.get("enabled"))))
                 if path == "/api/beta/export":
                     return self._json(200, {"path": L.export_beta()})
+                if path == "/api/open-url":
+                    return self._json(200, {"ok": L.open_url(str(body.get("url", "")))})
                 if path == "/api/reveal":
                     return self._json(200, {"ok": L.reveal(str(body.get("path", "")))})
                 return self._err(404, "route inconnue")
