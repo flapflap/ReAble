@@ -18,3 +18,4 @@ def _isolated_registry(tmp_path, monkeypatch):
     fixtures = Path(__file__).resolve().parent / "definitions_fixture"
     (home / "settings.json").write_text(json.dumps({"definitions_dirs": [str(fixtures)]}), encoding="utf-8")
     monkeypatch.setenv("REABLE_HOME", str(home))
+    monkeypatch.setenv("REABLE_LANG", "fr")        # tests déterministes : indépendants de la langue du système

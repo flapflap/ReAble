@@ -5,6 +5,7 @@ import socket
 import time
 from pathlib import Path
 
+from ..i18n import tr
 from .logic import dropped_folder  # noqa: F401  (réexporté : utilisé par les tests)
 from .server import App
 
@@ -87,9 +88,9 @@ def request_close(app: App, confirm) -> bool:
     job = app.logic.jobs.current()
     if job is None:
         return True
-    if not confirm("Arrêter et fermer ?",
-                   "Une tâche est en cours. Si vous fermez, le projet en cours est abandonné proprement "
-                   "et les copies déjà faites sont conservées."):
+    if not confirm(tr("Arrêter et fermer ?"),
+                   tr("Une tâche est en cours. Si vous fermez, le projet en cours est abandonné proprement "
+                      "et les copies déjà faites sont conservées.")):
         return False
     app.logic.jobs.stop(job.id)
     t0 = time.time()

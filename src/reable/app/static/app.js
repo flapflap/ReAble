@@ -2,6 +2,7 @@
 (() => {
   "use strict";
   const TOKEN = document.querySelector('meta[name="reable-token"]').content;
+  const { T, L } = window.I18N;
   const root = document.getElementById("app");
   root.className = "pr";
 
@@ -66,12 +67,12 @@
     return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
   };
   const fmtEta = (s) => {
-    if (s === null || s === undefined || !isFinite(s)) return "calcul en cours";
-    if (s < 60) return `${Math.max(1, Math.round(s))} s`;
+    if (s === null || s === undefined || !isFinite(s)) return L("calcul en cours", "estimating…");
+    if (s < 60) return L(`${Math.max(1, Math.round(s))} s`, `~${Math.max(1, Math.round(s))} s left`);
     const m = Math.floor(s / 60), r = Math.round(s % 60);
-    return `${m} min ${String(r).padStart(2, "0")}`;
+    return L(`${m} min ${String(r).padStart(2, "0")}`, `~${m} min ${String(r).padStart(2, "0")} left`);
   };
-  const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+  const plural = (n, one, many) => `${n} ${T(n > 1 ? many : one)}`;
   const shortPath = (p) => (p || "").replace(/^\/Users\/[^/]+/, "~");
   const baseName = (p) => (p || "").split("/").pop().replace(/\.als$/, "");
 
@@ -135,7 +136,7 @@
     if (e.result) {
       const done = e.result === "converti" || e.result === "lu";
       const warn = e.result === "réglages par défaut";
-      const txt = `${e.item} · ${e.result}${e.message ? " · " + e.message : ""}`;
+      const txt = `${e.item} · ${T(e.result)}${e.message ? " · " + T(e.message) : ""}`;
       S.log.push({ t, kind: e.result === "erreur" ? "err" : warn ? "warn" : "ok", text: txt });
       if (S.job.kind === "convert" || S.job.kind === "plan") {
         const id = e.key || e.item;
@@ -144,7 +145,7 @@
       }
     } else if (e.item && e.phase) {
       const last = S.log[S.log.length - 1];
-      const txt = `${e.item} · ${e.phase}`;
+      const txt = `${e.item} · ${T(e.phase)}`;
       if (!last || last.text !== txt) S.log.push({ t, kind: "", text: txt });
       if ((S.job.kind === "convert" || S.job.kind === "plan") && !S.rows.find((r) => r.id === (e.key || e.item))) S.rows.push({ id: e.key || e.item, name: e.item, result: "", path: "" });
     }
@@ -216,9 +217,9 @@
   async function undoAll() {
     const n = (S.summary && S.summary.result && S.summary.result.written ? S.summary.result.written.length : 0) || S.rows.filter((r) => r.path).length;
     if (!n) { toast("Aucune copie à annuler."); return; }
-    if (!confirm(`Mettre ${plural(n, "copie", "copies")} à la corbeille ?\nVos projets d'origine ne sont pas touchés.`)) return;
+    if (!confirm(L(`Mettre ${plural(n, "copie", "copies")} à la corbeille ?\nVos projets d'origine ne sont pas touchés.`, `Move ${n} ${n > 1 ? "copies" : "copy"} to the Trash?\nYour original projects are not touched.`))) return;
     const r = await api("/api/undo", {});            // le serveur connaît toutes les copies écrites, même après un arrêt
-    toast(`${plural(r.moved.length, "copie mise", "copies mises")} à la corbeille.`);
+    toast(L(`${plural(r.moved.length, "copie mise", "copies mises")} à la corbeille.`, `${r.moved.length} ${r.moved.length > 1 ? "copies" : "copy"} moved to the Trash.`));
     S.view = "choose"; S.server = await api("/api/state");
     render();
   }
@@ -238,12 +239,12 @@
     const sv = S.server || {};
     const ctx = `\n\n---\nReAble ${sv.version || "?"} · macOS ${sv.system || "?"}`;
     const bug = kind === "bug";
-    const body = bug ? `**Ce que je faisais**\n\n**Ce que j’attendais**\n\n**Ce qui s’est passé**\n${ctx}` : `**L’idée**\n\n**Pourquoi c’est utile**\n${ctx}`;
-    return `${REPO}/issues/new?template=${bug ? "bug_report.md" : "feature_request.md"}&title=${encodeURIComponent(bug ? "[Bug] " : "[Idée] ")}&body=${encodeURIComponent(body)}`;
+    const body = L(bug ? `**Ce que je faisais**\n\n**Ce que j’attendais**\n\n**Ce qui s’est passé**\n${ctx}` : `**L’idée**\n\n**Pourquoi c’est utile**\n${ctx}`, bug ? `**What I was doing**\n\n**What I expected**\n\n**What happened**\n${ctx}` : `**The idea**\n\n**Why it is useful**\n${ctx}`);
+    return `${REPO}/issues/new?template=${bug ? "bug_report.md" : "feature_request.md"}&title=${encodeURIComponent(bug ? "[Bug] " : L("[Idée] ", "[Idea] "))}&body=${encodeURIComponent(body)}`;
   }
   function pluginRequestUrl(r) {
     const sv = S.server || {};
-    const body = `**Plugin** : ${r.plugin}\n**Éditeur** : ${r.vendor || "?"}\n**Format dans mon projet** : ${r.format}\n**Situation indiquée par ReAble** : ${r.verdict}\n**Projets concernés** : ${r.count}\n\n**Ce que je voudrais**\n\n---\nReAble ${sv.version || "?"} · macOS ${sv.system || "?"}`;
+    const body = L(`**Plugin** : ${r.plugin}\n**Éditeur** : ${r.vendor || "?"}\n**Format dans mon projet** : ${r.format}\n**Situation indiquée par ReAble** : ${r.verdict}\n**Projets concernés** : ${r.count}\n\n**Ce que je voudrais**\n\n---\nReAble ${sv.version || "?"} · macOS ${sv.system || "?"}`, `**Plugin**: ${r.plugin}\n**Vendor**: ${r.vendor || "?"}\n**Format in my project**: ${r.format}\n**Status shown by ReAble**: ${T(r.verdict)}\n**Projects affected**: ${r.count}\n\n**What I would like**\n\n---\nReAble ${sv.version || "?"} · macOS ${sv.system || "?"}`);
     return `${REPO}/issues/new?template=plugin_request.md&title=${encodeURIComponent("[Plugin] " + r.plugin)}&body=${encodeURIComponent(body)}`;
   }
   function aboutDialog() {
@@ -253,7 +254,7 @@
       h("div", { class: "dlg about", role: "dialog", "aria-modal": "true", "aria-labelledby": "about-title" },
         h("img", { class: "logo", src: "logo.png", alt: "", width: 56, height: 56 }),
         h("h2", { id: "about-title" }, "ReAble"),
-        h("p", {}, `Version ${sv.version || "?"} bêta · macOS ${sv.system || "?"}`),
+        h("p", {}, `Version ${sv.version || "?"} · macOS ${sv.system || "?"}`),
         h("p", { class: "note" }, "Version bêta : vérifiez chaque conversion dans Live avant de vous y fier."),
         h("p", {}, "Retrouve et répare les plugins manquants de tes projets Ableton Live. Tes projets d’origine ne sont jamais modifiés."),
         h("div", { class: "col" },
@@ -265,7 +266,7 @@
   window.reableShowAbout = () => { S.about = true; render(); };
   async function copyOldList() {
     const r = await api("/api/old-sets");
-    try { await navigator.clipboard.writeText(r.sets.join("\n")); toast(`Liste copiée : ${plural(r.sets.length, "projet", "projets")}.`); }
+    try { await navigator.clipboard.writeText(r.sets.join("\n")); toast(L(`Liste copiée : ${plural(r.sets.length, "projet", "projets")}.`, `List copied: ${plural(r.sets.length, "projet", "projets")}.`)); }
     catch (e) { toast("Copie impossible : autorisation refusée."); }
   }
 
@@ -296,7 +297,7 @@
       nav("Plugins", "box", S.view === "plugins" || S.view === "plugintest", !busy(), openPlugins, S.plugins ? String(S.plugins.length) : ""),
       nav("Réglages", "gear", S.view === "settings", !busy(), openSettings),
       h("div", { class: "safe" }, icon("shield", "", 16), h("span", {}, "Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].")),
-      sv && sv.version ? h("button", { type: "button", class: "ver", onclick: () => { S.about = true; render(); } }, `ReAble · version ${sv.version} bêta`) : null);
+      sv && sv.version ? h("button", { type: "button", class: "ver", onclick: () => { S.about = true; render(); } }, `ReAble · version ${sv.version}`) : null);
   }
   const LIB_VIEWS = ["plugins", "plugintest", "settings"];
   function rememberView() { if (!LIB_VIEWS.includes(S.view)) S.prevView = S.view; }
@@ -353,7 +354,7 @@
     const cur = l && l.phase ? phases.indexOf(l.phase) : -1;
     const searching = !tot;
     return h("div", { class: "prog" },
-      h("div", { class: "row" }, h("b", {}, searching ? "Recherche des projets…" : `${n} / ${tot} ${label}`), h("span", {}, "Écoulé ", h("b", {}, fmtTime(l ? l.elapsed : 0)), " · reste environ ", h("b", {}, fmtEta(l ? l.eta : null)))),
+      h("div", { class: "row" }, h("b", {}, searching ? "Recherche des projets…" : `${n} / ${tot} ${T(label)}`), h("span", {}, "Écoulé ", h("b", {}, fmtTime(l ? l.elapsed : 0)), " · reste environ ", h("b", {}, fmtEta(l ? l.eta : null)))),
       h("div", { class: "bar", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(tot), "aria-valuenow": String(n), "aria-label": "Progression" }, h("i", { style: `width:${pct}%` })),
       h("div", { class: "phase", "aria-live": "polite" }, h("span", {}, l && l.item ? `${l.item} :` : "Préparation…"),
         phases.map((p, i) => h("em", { class: i < cur ? "d" : i === cur ? "n" : "" }, p[0].toUpperCase() + p.slice(1)))));
@@ -373,13 +374,13 @@
     const detail = { validated: "Vos réglages seront repris.",
       default: "Repart des réglages par défaut ; l’ancien preset est noté sur la piste.",
       old: "À ouvrir et enregistrer dans Live 12, puis réanalyser.",
-      template: `Pour convertir ces projets, ReAble a besoin d’un projet Live 12 qui contient ${g.targets.join(", ")} en VST3 (un « gabarit »). Chargez-le une fois dans un projet, enregistrez-le, puis ajoutez ce dossier.`, unsupported: g.plugins.slice(0, 4).join(", ") + (g.plugins.length > 4 ? "…" : "") + " — ReAble ne sait pas encore les convertir.",
+      template: L(`Pour convertir ces projets, ReAble a besoin d’un projet Live 12 qui contient ${g.targets.join(", ")} en VST3 (un « gabarit »). Chargez-le une fois dans un projet, enregistrez-le, puis ajoutez ce dossier.`, `To convert these projects, ReAble needs a Live 12 project that contains ${g.targets.join(", ")} as VST3 (a “template”). Load it once in a project, save it, then add that folder.`), unsupported: g.plugins.slice(0, 4).join(", ") + (g.plugins.length > 4 ? "…" : "") + L(" — ReAble ne sait pas encore les convertir.", " — ReAble can’t convert them yet."),
       done: "Les copies existent déjà ; elles ne seront pas refaites." }[g.kind];
     const act = g.kind === "template" ? btnLink("Ajouter un dossier de gabarits…", addTemplateDir) : g.kind === "old" ? btnLink("Copier la liste", copyOldList) : g.kind === "unsupported" ? btnLink("Voir et remplacer…", openReport) : btnLink(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(g.id) : S.expanded.add(g.id); render(); });
     const cb = g.selectable ? h("input", { type: "checkbox", checked: sel, "aria-label": `Convertir ${g.title}`, onchange: (e) => { e.target.checked ? S.selected.add(g.id) : S.selected.delete(g.id); render(); } }) : null;
     const rows = [h("tr", {}, h("td", { class: "chk" }, cb), h("td", {}, stateEl),
       h("td", {}, h("strong", {}, g.title), h("span", { class: "sub" }, detail)), h("td", { class: "n" }, g.count), h("td", {}, act))];
-    if (open) rows.push(h("tr", { class: "sub" }, h("td"), h("td", { colspan: 4 }, h("div", { class: "names" }, (g.kind === "unsupported" ? g.plugins : g.sets.map(baseName)).map((n) => h("span", {}, n))))));
+    if (open) rows.push(h("tr", { class: "sub" }, h("td"), h("td", { colspan: 4 }, h("div", { class: "names" }, (g.kind === "unsupported" ? g.plugins : g.sets.map(baseName)).map((n) => h("span", { translate: "no" }, n))))));
     return rows;
   }
   function btnLink(label, fn) { return btn(label, fn, "btn btn-sm"); }
@@ -423,7 +424,7 @@
   }
   const KIND_BADGE = { blocked: ["err", "Non convertible"], unknown: ["err", "Inconnu"], template: ["warn", "Gabarit requis"], old: ["warn", "Projet à ré-enregistrer"], convert: ["ok", "Sera converti"], done: ["ok", "Déjà fait"] };
   function reportText(rep) {
-    return [`Plugins manquants — ${shortPath(rep.folder)}`, ""].concat(rep.rows.map((r) => `${r.plugin} (${r.format}) · ${plural(r.count, "projet", "projets")} · ${r.verdict}${r.hint ? " · " + r.hint : ""}\n   ${r.projects.join(", ")}`)).join("\n");
+    return [T(`Plugins manquants — ${shortPath(rep.folder)}`), ""].concat(rep.rows.map((r) => `${r.plugin} (${r.format}) · ${plural(r.count, "projet", "projets")} · ${T(r.verdict)}${r.hint ? " · " + T(r.hint) : ""}\n   ${r.projects.join(", ")}`)).join("\n");
   }
   function reportBlock(rep, expanded) {
     if (!rep || !rep.rows.length) return h("p", { class: "lead" }, "Aucun plugin manquant dans ce dossier.");
@@ -431,14 +432,14 @@
       const [tone, label] = KIND_BADGE[r.kind] || KIND_BADGE.unknown;
       const key = "rep|" + r.plugin + "|" + r.format, open = S.expanded.has(key);
       const mapped = ((S.server && S.server.options && S.server.options.mapping) || {})[r.plugin];
-      const main = h("tr", {}, h("td", {}, h("strong", {}, r.plugin), h("span", { class: "sub" }, `${r.format}${r.vendor ? " · " + r.vendor : ""}`)),
+      const main = h("tr", {}, h("td", {}, h("strong", { translate: "no" }, r.plugin), h("span", { class: "sub", translate: "no" }, `${r.format}${r.vendor ? " · " + r.vendor : ""}`)),
         h("td", {}, stateBadge(tone, label)), h("td", {}, r.verdict, r.hint ? h("span", { class: "sub" }, r.hint) : null),
         h("td", { class: "n" }, r.count), h("td", { class: "acts" }, h("div", { class: "acol" },
           btn(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(key) : S.expanded.add(key); render(); }, "btn btn-sm"),
           mapped ? btn("Remplaçant : " + mapped + " · modifier", () => openReplacement(r), "btn btn-sm") : null,
           !mapped && (r.kind === "unknown" || r.kind === "blocked") ? btn("Choisir un remplaçant…", () => openReplacement(r), "btn btn-sm") : null,
           !mapped && (r.kind === "unknown" || r.kind === "blocked") ? btn("Demander la prise en charge", () => openExternal(pluginRequestUrl(r)), "btn btn-sm") : null)));
-      return open ? [main, h("tr", { class: "sub" }, h("td", { colspan: 5 }, h("div", { class: "names" }, r.projects.map((n) => h("span", {}, n)))))] : [main];
+      return open ? [main, h("tr", { class: "sub" }, h("td", { colspan: 5 }, h("div", { class: "names" }, r.projects.map((n) => h("span", { translate: "no" }, n)))))] : [main];
     });
     return h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:220px" }, "Plugin"), h("th", { style: "width:170px" }, "Situation"), h("th", { style: "min-width:220px" }, "Ce qu’il faut faire"), h("th", { style: "text-align:right;width:70px" }, "Projets"), h("th", { style: "width:250px" }))), h("tbody", {}, rows));
   }
@@ -463,7 +464,7 @@
       S.server = await api("/api/replacement", { plugin: r.plugin, target });
       S.report = await api("/api/missing-report");
       if (S.view === "plugins") S.plugins = await api("/api/plugins");
-      toast(target ? `${r.plugin} sera remplacé par ${target}.` : "Remplacement retiré.");
+      toast(target ? L(`${r.plugin} sera remplacé par ${target}.`, `${r.plugin} will be replaced by ${target}.`) : "Remplacement retiré.");
     } catch (e) { toast(e.message); }
     S.repl = null; render();
   }
@@ -484,18 +485,18 @@
   function viewReport() {
     const rep = S.report || { rows: [] };
     return frame("Plugins manquants", [btn("Copier le rapport", copyReport, "btn", { disabled: !rep.rows.length }), btn("Retour", () => { S.view = S.prevReport || "understand"; render(); })],
-      h("div", { class: "valid" }, h("div", {}, h("h2", {}, "Plugins manquants dans ce dossier"), h("p", { class: "lead" }, `${plural(rep.rows.length, "plugin manquant", "plugins manquants")}, classés des plus bloquants aux plus simples.`)), reportBlock(rep)), null);
+      h("div", { class: "valid" }, h("div", {}, h("h2", {}, "Plugins manquants dans ce dossier"), h("p", { class: "lead" }, L(`${plural(rep.rows.length, "plugin manquant", "plugins manquants")}, classés des plus bloquants aux plus simples.`, `${plural(rep.rows.length, "plugin manquant", "plugins manquants")}, from the most blocking to the simplest.`))), reportBlock(rep)), null);
   }
   function viewEmpty() {
     const sv = S.server, sm = sv.summary || {};
     const done = sm.already_done || 0, old = sm.too_old || 0, unsup = sm.unsupported_plugins || 0;
     const title = done ? "Tout est déjà converti" : "Rien à convertir pour le moment";
     const reasons = [];
-    if (done) reasons.push(`${plural(done, "projet a", "projets ont")} déjà ${done > 1 ? "leur" : "sa"} copie [ReAble] : rien n’est refait.`);
-    if (old) reasons.push(`${plural(old, "projet est", "projets sont")} trop ancien${old > 1 ? "s" : ""} : ouvrez-${old > 1 ? "les" : "le"} dans Live 12, enregistrez-${old > 1 ? "les" : "le"}, puis réanalysez.`);
+    if (done) reasons.push(L(`${plural(done, "projet a", "projets ont")} déjà ${done > 1 ? "leur" : "sa"} copie [ReAble] : rien n’est refait.`, `${done} ${done > 1 ? "projects already have" : "project already has"} a [ReAble] copy: nothing is redone.`));
+    if (old) reasons.push(L(`${plural(old, "projet est", "projets sont")} trop ancien${old > 1 ? "s" : ""} : ouvrez-${old > 1 ? "les" : "le"} dans Live 12, enregistrez-${old > 1 ? "les" : "le"}, puis réanalysez.`, `${old} ${old > 1 ? "projects are" : "project is"} too old: open ${old > 1 ? "them" : "it"} in Live 12, save ${old > 1 ? "them" : "it"}, then analyze again.`));
     const tpl = sm.template_missing || 0;
-    if (tpl) reasons.push(`${plural(tpl, "projet attend", "projets attendent")} un gabarit : ajoutez un projet Live 12 qui contient ${(sm.templates_needed || []).join(", ")} en VST3.`);
-    if (unsup) reasons.push(`${plural(unsup, "plugin n’a", "plugins n’ont")} pas d’équivalent connu : ReAble ne sait pas encore ${unsup > 1 ? "les" : "le"} convertir.`);
+    if (tpl) reasons.push(L(`${plural(tpl, "projet attend", "projets attendent")} un gabarit : ajoutez un projet Live 12 qui contient ${(sm.templates_needed || []).join(", ")} en VST3.`, `${tpl} ${tpl > 1 ? "projects are" : "project is"} waiting for a template: add a Live 12 project that contains ${(sm.templates_needed || []).join(", ")} as VST3.`));
+    if (unsup) reasons.push(L(`${plural(unsup, "plugin n’a", "plugins n’ont")} pas d’équivalent connu : ReAble ne sait pas encore ${unsup > 1 ? "les" : "le"} convertir.`, `${unsup} ${unsup > 1 ? "plugins have" : "plugin has"} no known match: ReAble can’t convert ${unsup > 1 ? "them" : "it"} yet.`));
     if (!reasons.length) reasons.push("Aucun projet de ce dossier ne contient de plugin manquant que ReAble sait remplacer.");
     return frame(`${baseName(sv.folder)} · ${plural(sv.sets, "projet analysé", "projets analysés")}`, [btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); })],
       [noDefs(), h("div", { class: "center" }, icon("ok", "big", 48), h("h2", {}, title), reasons.map((r) => h("p", {}, r)),
@@ -503,12 +504,12 @@
       null);
   }
   function countsLine(c, d, i, e, extra) {
-    return h("div", { class: "counts" }, h("b", {}, c), " convertis · ", h("b", {}, d), " en réglages par défaut · ", h("b", {}, i), " ignorés · ", h("b", {}, e), e > 1 ? " erreurs" : " erreur", extra ? ` · ${extra}` : "");
+    return h("div", { class: "counts" }, h("b", {}, c), " convertis · ", h("b", {}, d), " en réglages par défaut · ", h("b", {}, i), " ignorés · ", h("b", {}, e), L(e > 1 ? " erreurs" : " erreur", e === 1 ? " error" : " errors"), extra ? ` · ${extra}` : "");
   }
   function resultRow(r, i) {
     const k = r.result;
     const st = !k ? stateBadge("run", "En cours") : k === "converti" ? stateBadge("ok", "Converti") : k === "réglages par défaut" ? stateBadge("warn", "Réglages par défaut") : k === "erreur" ? stateBadge("err", "Erreur") : stateBadge("neu", "Ignoré");
-    return h("tr", { class: !k ? "sel" : "" }, h("td", { style: "width:170px" }, st), h("td", {}, h("strong", {}, r.name)));
+    return h("tr", { class: !k ? "sel" : "" }, h("td", { style: "width:170px" }, st), h("td", {}, h("strong", { translate: "no" }, r.name)));
   }
   function viewRunning() {
     const l = S.job && S.job.last;
@@ -517,7 +518,7 @@
     for (const r of S.rows) { if (r.result === "converti") counts.c++; else if (r.result === "réglages par défaut") counts.d++; else if (r.result === "erreur") counts.e++; else if (r.result === "ignoré") counts.i++; }
     const log = S.log.filter((x) => S.logFilter === "all" || (S.logFilter === "warn" && (x.kind === "warn" || x.kind === "err")) || (S.logFilter === "err" && x.kind === "err")).slice(-120);
     const seg = (id, label) => h("span", { class: S.logFilter === id ? "on" : "", role: "button", tabindex: "0", onclick: () => { S.logFilter = id; render(); } }, label);
-    return frame(`${dry ? "Essai à blanc" : "Conversion en cours"} · ${baseName(S.server.folder)}`, [stopButton()],
+    return frame(`${T(dry ? "Essai à blanc" : "Conversion en cours")} · ${baseName(S.server.folder)}`, [stopButton()],
       [progressBlock("projets", S.job ? S.job.total : 0), countsLine(counts.c, counts.d, counts.i, counts.e),
         h("div", { class: "list" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:170px" }, "État"), h("th", {}, "Projet"))), h("tbody", {}, S.rows.slice(-60).map(resultRow)))),
         h("div", { class: "logpane" }, h("header", {}, "Journal", h("span", { class: "seg", role: "group", "aria-label": "Filtre du journal" }, seg("all", "Tout"), seg("warn", "Avertissements"), seg("err", "Erreurs"))),
@@ -533,7 +534,7 @@
         btn("Annuler cette conversion", undoAll, "btn", { disabled: !written.length })],
       [h("div", { class: "summary" }, h("h2", {}, `Conversion terminée : ${plural(written.length, "projet converti", "projets convertis")}, ${plural(c.errors || 0, "erreur", "erreurs")}`),
           h("p", {}, "Les copies sont à côté des originaux, avec [ReAble] dans leur nom. Vos originaux n’ont pas été modifiés."),
-          countsLine(c.converted || 0, c.default || 0, c.skipped || 0, c.errors || 0, S.job && S.job.last ? `durée ${fmtTime(S.job.last.elapsed)}` : "")),
+          countsLine(c.converted || 0, c.default || 0, c.skipped || 0, c.errors || 0, S.job && S.job.last ? L(`durée ${fmtTime(S.job.last.elapsed)}`, `duration ${fmtTime(S.job.last.elapsed)}`) : "")),
         h("div", { class: "hint" }, icon("info", "", 16), h("div", {}, h("b", {}, "Que vérifier dans Live ? "), "Ouvrez une copie : les pistes dupliquées chargent leur instrument, l’originale est en sourdine ; le nouveau plugin d’effet est placé avant l’ancien, désactivé.")),
         h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Copie créée"), h("th", {}, "Dossier"), h("th", { style: "width:170px" }))), h("tbody", {}, rows))],
       null);
@@ -543,7 +544,7 @@
     const files = S.rows.filter((r) => r.path).map((r) => r.path);
     return frame("Conversion arrêtée", [btn("Annuler ce qui a été fait", undoAll, "btn", { disabled: !files.length }), btn("Reprendre", () => startConvert(false), "btn btn-primary")],
       [h("div", { class: "summary" }, h("h2", {}, `Arrêté : ${plural(done, "projet fait", "projets faits")}, ${plural(left, "non traité", "non traités")}`),
-          h("p", {}, `Le projet qui était en cours a été abandonné proprement : aucun fichier incomplet n’a été laissé. Les ${plural(files.length, "copie déjà faite est conservée", "copies déjà faites sont conservées")}.`)),
+          h("p", {}, L(`Le projet qui était en cours a été abandonné proprement : aucun fichier incomplet n’a été laissé. Les ${plural(files.length, "copie déjà faite est conservée", "copies déjà faites sont conservées")}.`, `The project in progress was cleanly abandoned: no incomplete file was left. The ${files.length} ${files.length > 1 ? "copies already made are" : "copy already made is"} kept.`))),
         h("div", { class: "center", style: "margin-top:36px" }, icon("shield", "big", 48), h("h2", {}, "Rien n’est abîmé"),
           h("p", {}, "« Reprendre » continue avec les projets restants, sans refaire les premiers. « Annuler ce qui a été fait » met les copies à la corbeille et laisse vos projets d’origine tels quels."))],
       null);
@@ -566,13 +567,13 @@
       const act = h("div", { class: "acol" },
         d.status === "experimental" ? btn("Tester ce plugin", () => { S.ptest = { def: d, created: null, busy: false, error: null, note: "" }; S.view = "plugintest"; render(); }, "btn btn-sm") : null,
         d.status !== "validated" ? btn(mapped ? "Remplaçant : " + mapped + " · modifier" : "Choisir un remplaçant…", () => openReplacement(replRow), "btn btn-sm") : null);
-      return h("tr", {}, h("td", {}, h("strong", {}, d.name), h("span", { class: "sub" }, d.vendor || "")), h("td", {}, stateBadge(tone, label)),
+      return h("tr", {}, h("td", {}, h("strong", { translate: "no" }, d.name), h("span", { class: "sub", translate: "no" }, d.vendor || "")), h("td", {}, stateBadge(tone, label)),
         h("td", {}, d.adapter ? (CAPABILITY[d.adapter] || "Prise en charge partielle") : "Pas encore convertible"), h("td", {}, ORIGIN_LABEL[d.source] || d.source), h("td", { class: "acts" }, act));
     });
     const validated = (S.plugins || []).filter((d) => d.status === "validated").length;
     return frame("Bibliothèque de plugins", [btn("Retour", leaveLibrary)],
       h("div", { class: "valid" },
-        h("div", {}, h("h2", {}, "Plugins connus de ReAble"), h("p", { class: "lead" }, `${plural(validated, "plugin validé", "plugins validés")} sur ${(S.plugins || []).length}. Un plugin « à tester » reste bloqué tant que vous n’avez pas vérifié le résultat dans Live.`)),
+        h("div", {}, h("h2", {}, "Plugins connus de ReAble"), h("p", { class: "lead" }, L(`${plural(validated, "plugin validé", "plugins validés")} sur ${(S.plugins || []).length}. Un plugin « à tester » reste bloqué tant que vous n’avez pas vérifié le résultat dans Live.`, `${plural(validated, "plugin validé", "plugins validés")} out of ${(S.plugins || []).length}. A plugin marked “to test” stays blocked until you have checked the result in Live.`))),
         h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:190px" }, "Plugin"), h("th", { style: "width:170px" }, "Statut"), h("th", {}, "Ce que ReAble sait faire"), h("th", { style: "width:190px" }, "Origine"), h("th", { style: "width:210px" }))), h("tbody", {}, rows))),
       null);
   }
@@ -585,7 +586,7 @@
     const t = S.ptest;
     try {
       await api("/api/plugins/validate", { id: t.def.id, result, note: t.note });
-      toast(result === "ok" ? `${t.def.name} est maintenant validé pour vous.` : `Noté : ${t.def.name} reste bloqué.`);
+      toast(result === "ok" ? L(`${t.def.name} est maintenant validé pour vous.`, `${t.def.name} is now validated for you.`) : L(`Noté : ${t.def.name} reste bloqué.`, `Noted: ${t.def.name} stays blocked.`));
       S.plugins = await api("/api/plugins"); S.server = await api("/api/state");
       S.view = "plugins"; render();
     } catch (e) { toast(e.message); }
@@ -595,18 +596,18 @@
     const step = (n, title, ...body) => h("div", { class: "step" }, h("span", { class: "num" }, String(n)), h("div", {}, h("b", {}, title), ...body));
     const analyzed = S.server && S.server.analyzed;
     const first = t.created
-      ? step(1, "La copie de test est prête", h("p", {}, `Projet « ${t.created.project} » : ${t.created.plugin} → ${t.created.target}. Rangée à part, vos projets ne sont pas touchés.`),
+      ? step(1, "La copie de test est prête", h("p", {}, L(`Projet « ${t.created.project} » : ${t.created.plugin} → ${t.created.target}. Rangée à part, vos projets ne sont pas touchés.`, `Project “${t.created.project}”: ${t.created.plugin} → ${t.created.target}. Stored separately; your projects are not touched.`)),
           h("div", { class: "row" }, btn("Afficher dans le Finder", () => api("/api/reveal", { path: t.created.path }), "btn btn-sm")))
       : step(1, "Créer une copie de test", analyzed
-          ? h("p", {}, `ReAble prend un de vos projets analysés qui utilise ${d.name} et en écrit une copie de test, rangée dans le dossier de ReAble.`)
-          : h("p", {}, `ReAble a besoin d’un de vos projets qui utilise ${d.name}. Analysez d’abord le dossier qui le contient.`),
+          ? h("p", {}, L(`ReAble prend un de vos projets analysés qui utilise ${d.name} et en écrit une copie de test, rangée dans le dossier de ReAble.`, `ReAble takes one of your analyzed projects that uses ${d.name} and writes a test copy of it, stored in ReAble’s own folder.`))
+          : h("p", {}, L(`ReAble a besoin d’un de vos projets qui utilise ${d.name}. Analysez d’abord le dossier qui le contient.`, `ReAble needs one of your projects that uses ${d.name}. Analyze the folder that contains it first.`)),
           t.error ? h("p", { class: "err" }, t.error) : null,
           h("div", { class: "row" }, analyzed ? btn(t.busy ? "Création…" : "Créer la copie de test", createTestCopy, "btn btn-primary btn-sm", { disabled: t.busy })
             : btn("Choisir un dossier", () => { S.view = "choose"; render(); }, "btn btn-primary btn-sm")));
     const locked = !t.created;
-    return frame(`Tester ${d.name}`, [btn("Retour", () => { S.view = "plugins"; render(); })],
+    return frame(L(`Tester ${d.name}`, `Test ${d.name}`), [btn("Retour", () => { S.view = "plugins"; render(); })],
       h("div", { class: "valid" },
-        h("div", {}, h("h2", {}, `Vérifier ${d.name} dans Live`), h("p", { class: "lead" }, "Trois étapes. Le résultat reste sur ce Mac : rien n’est envoyé sans votre accord.")),
+        h("div", {}, h("h2", {}, L(`Vérifier ${d.name} dans Live`, `Check ${d.name} in Live`)), h("p", { class: "lead" }, "Trois étapes. Le résultat reste sur ce Mac : rien n’est envoyé sans votre accord.")),
         first,
         step(2, "Ouvrir la copie dans Live 12", h("p", {}, "Vérifiez que le plugin se charge, avec le même preset et des réglages identiques à ceux du projet d’origine. Jouez quelques notes ou écoutez la piste.")),
         step(3, "Dire ce que vous avez constaté",
@@ -614,6 +615,11 @@
             oninput: (e) => { t.note = e.target.value; } })),
           h("div", { class: "row" }, btn("Oui, c’est identique", () => sendVerdict("ok"), "btn btn-primary btn-sm", { disabled: locked }), btn("Non, il y a un problème", () => sendVerdict("ko"), "btn btn-sm", { disabled: locked })))),
       null);
+  }
+  async function setLanguage(pref) {
+    try { S.server = await api("/api/language", { language: pref }); } catch (e) { toast(e.message); return; }
+    window.I18N.lang = S.server.lang; document.documentElement.lang = S.server.lang;
+    render();
   }
   async function toggleBeta(on) {
     try { S.beta = await api("/api/beta", { enabled: on }); } catch (e) { toast(e.message); }
@@ -627,6 +633,10 @@
     const block = (title, ...kids) => h("section", { class: "block" }, h("h2", {}, title), ...kids);
     return frame("Réglages", [btn("Retour", leaveLibrary)],
       h("div", { class: "valid" },
+        block("Langue",
+          h("p", { class: "lead" }, "Choisissez la langue de l’interface. « Automatique » suit la langue de macOS."),
+          h("div", { class: "pop" }, h("select", { "aria-label": "Langue", onchange: (e) => setLanguage(e.target.value) },
+            [["auto", "Automatique"], ["fr", "Français"], ["en", "English"]].map(([v, l]) => h("option", { value: v, selected: v === (sv.language || "auto"), translate: v === "auto" ? null : "no" }, l))), icon("updown", "", 12))),
         block("Programme bêta",
           h("p", { class: "lead" }, "Aidez à enrichir la bibliothèque : ReAble peut préparer un fichier anonyme avec le résultat de vos tests de plugins (aucun nom de projet, de piste ni de chemin). Vous l’envoyez vous-même, si vous le souhaitez."),
           h("label", { class: "check" }, h("input", { type: "checkbox", checked: S.beta.enabled, onchange: (e) => toggleBeta(e.target.checked) }), "Participer au programme bêta"),
@@ -634,11 +644,11 @@
           S.beta.enabled && !S.beta.has_results ? h("p", { class: "lead" }, "Aucun résultat à exporter : testez d’abord un plugin depuis l’onglet Plugins.") : null),
         block("Gabarits",
           h("p", { class: "lead" }, "Pour convertir vers un plugin, ReAble a besoin d’un projet Live 12 qui le contient en VST3. Il en garde un exemplaire à chaque analyse ; vous pouvez en ajouter depuis l’écran Valider."),
-          S.templateDirs.length ? h("div", { class: "names" }, S.templateDirs.map((d) => h("span", {}, shortPath(d)))) : null),
+          S.templateDirs.length ? h("div", { class: "names" }, S.templateDirs.map((d) => h("span", { translate: "no" }, shortPath(d)))) : null),
         block("Bibliothèque de plugins",
           h("p", { class: "lead" }, `${plural(sv.definitions || 0, "plugin connu", "plugins connus")}.`),
           h("div", { class: "row" }, btn("Voir les plugins", openPlugins, "btn btn-sm"))),
-        block("À propos et retours", h("p", { class: "lead" }, `ReAble, version ${sv.version || "?"}. Un problème, une idée ? Dites-le sur GitHub : le message est pré-rempli avec la version et le système.`),
+        block("À propos et retours", h("p", { class: "lead" }, L(`ReAble, version ${sv.version || "?"}. Un problème, une idée ? Dites-le sur GitHub : le message est pré-rempli avec la version et le système.`, `ReAble, version ${sv.version || "?"}. A problem, an idea? Tell us on GitHub: the message is pre-filled with the version and system.`)),
           h("div", { class: "row" }, btn("Signaler un problème", () => openExternal(feedbackUrl("bug")), "btn btn-sm"), btn("Proposer une idée", () => openExternal(feedbackUrl("feature")), "btn btn-sm"),
             btn("Voir le projet sur GitHub", () => openExternal(REPO), "btn btn-sm")))),
       null);
@@ -653,6 +663,7 @@
     if (S.about) nodes.push(aboutDialog());
     if (S.repl) nodes.push(replacementDialog());
     root.replaceChildren(...nodes);
+    window.I18N.localize(root);
     if (keep) { const i = root.querySelector('input[type="text"]'); if (i) { i.value = keep.v; i.focus(); try { i.setSelectionRange(keep.s, keep.s); } catch (e) { /* ignore */ } } }
   }
   window.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.about) { S.about = false; render(); } });
@@ -678,6 +689,8 @@
   (async function init() {
     try {
       S.server = await api("/api/state");
+      await window.I18N.load();
+      window.I18N.lang = S.server.lang || "fr"; document.documentElement.lang = window.I18N.lang;
       S.path = S.server.folder || "~/Music";
       if (S.server.job && (S.server.job.state === "running" || S.server.job.state === "stopping")) {
         S.view = S.server.job.kind === "analyze" ? "analyzing" : "running";

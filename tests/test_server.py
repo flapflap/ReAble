@@ -255,7 +255,8 @@ def test_beta_switch_and_version(app):
     assert call(app, "POST", "/api/beta", {"enabled": True})[1]["enabled"] is True
     assert call(app, "GET", "/api/beta")[1]["enabled"] is True
     _, state = call(app, "GET", "/api/state")
-    assert state["version"] == "0.1"
+    from reable import __version__
+    assert state["version"] == __version__ and state["version"].startswith("0.1")
 
 
 def test_open_url_only_accepts_the_reable_repository(app, monkeypatch):
@@ -360,3 +361,46 @@ def test_replacement_chosen_for_a_family_applies_to_every_version_of_it():
     assert mapped_target("Sausage Fattener", {"Sausage Fattener": "Saturn"}) == "Saturn"
     assert mapped_target("FabFilter Pro-Q 3", {"FabFilter Pro-Q": "Pro-Q 4"}) == "Pro-Q 4"
     assert mapped_target("Kontakt 5", {"Play": "Opus"}) is None
+
+
+def test_language_preference_and_state(app, monkeypatch):
+    monkeypatch.delenv("REABLE_LANG", raising=False)
+    st, s = call(app, "POST", "/api/language", {"language": "en"})
+    assert st == 200 and s["lang"] == "en" and s["language"] == "en"
+    assert call(app, "POST", "/api/language", {"language": "fr"})[1]["lang"] == "fr"
+    assert call(app, "POST", "/api/language", {"language": "klingon"})[0] == 400
+
+
+def test_python_written_texts_follow_the_language(monkeypatch):
+    from reable import i18n
+    from reable.adapters import state_note
+    monkeypatch.setenv("REABLE_LANG", "fr")
+    assert state_note("none") == "Réglages par défaut : le preset d'origine n'a pas été transféré"
+    assert i18n.track_info_template(i18n.TRACK_INFO_FR) == i18n.TRACK_INFO_FR
+    monkeypatch.setenv("REABLE_LANG", "en")
+    assert state_note("none") == "Default settings: the original preset was not transferred"
+    assert i18n.track_info_template(i18n.TRACK_INFO_FR) == i18n.TRACK_INFO_EN
+    assert i18n.track_info_template("mon modèle perso") == "mon modèle perso"          # un modèle modifié n'est jamais remplacé
+    assert i18n.tr("Restauré") == "Restored"
+
+
+def test_english_dictionary_covers_every_static_text_of_the_interface():
+    """Tout texte français « en dur » de app.js doit avoir une traduction (ou être une phrase construite via L())."""
+    import re
+    root = Path(__file__).parents[1] / "src/reable/app/static"
+    en = json.loads((root / "locales/en.json").read_text(encoding="utf-8"))
+    known = {k.strip() for k in en["exact"]}
+    pats = [re.compile(p) for p, _ in en["patterns"]]
+    js = (root / "app.js").read_text(encoding="utf-8")
+    # chaînes entre guillemets droits, sans variable ${}, qui ressemblent à du texte français affiché
+    missing = []
+    for m in re.finditer(r'(?<![\w.])"((?:[^"\\\n]|\\.)*)"', js):
+        t = m.group(1).replace("\\n", "\n").strip()
+        if "${" in t or len(t) < 4 or t in known or any(p.match(t) for p in pats):
+            continue
+        if re.search(r"[À-ÿ’«»…]", t) or re.fullmatch(r"[A-Z][a-z]+( [a-zà-ÿ]+)*", t):
+            missing.append(t)
+    ignore = {"Lead", "Abstract City", "Ozone 10", "Escape", "Enter", "Space", "Tab",          # exemples et touches
+              "[Idée]", "estimating…", "— ReAble can’t convert them yet.", "plugin n’a", "plugins n’ont",        # arguments de L() et plural()
+              "copie déjà faite est conservée", "copies déjà faites sont conservées"}
+    assert not [t for t in missing if t not in ignore], missing

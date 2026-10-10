@@ -1,16 +1,18 @@
 name: dmg
-# À chaque poussée sur main : tests, puis construction de ReAble.app et du DMG, publiés dans la version « latest ».
+# - Poussée sur main : tests, DMG, publié dans la version « nightly » (build de développement, remplacée à chaque poussée).
+# - Étiquette vX.Y.Z[-beta.N] : tests, DMG signé et notarisé, publié comme version numérotée (téléchargement du README).
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 concurrency:
-  group: dmg-main
-  cancel-in-progress: true          # une poussée plus récente remplace une construction encore en cours
+  group: dmg-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}   # main : une poussée plus récente remplace une construction en cours ; jamais pour une version numérotée
 
 permissions:
-  contents: write                   # nécessaire pour mettre à jour la version « latest »
+  contents: write                   # nécessaire pour publier les versions
 
 jobs:
   dmg:
@@ -79,7 +81,15 @@ jobs:
           PYTHON: python
           LIBRARY_DIR: ${{ github.workspace }}/library
         run: |
-          VERSION="$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+            CODE_VERSION="$(python -c 'import reable; print(reable.__version__)')"
+            if [ "$VERSION" != "$CODE_VERSION" ]; then
+              echo "::error::L'étiquette ($VERSION) ne correspond pas à la version du code ($CODE_VERSION) : corrigez src/reable/__init__.py puis recréez l'étiquette"; exit 1
+            fi
+          else
+            VERSION="$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
+          fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           packaging/build_macos.sh "$VERSION"
           cp "dist/ReAble-$VERSION.dmg" dist/ReAble.dmg          # nom stable pour le lien de téléchargement
@@ -91,19 +101,27 @@ jobs:
           path: dist/ReAble-*.dmg
           retention-days: 30
 
-      - name: Publier dans la version « latest »
+      - name: Publier la version numérotée
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -n "$SIGN_IDENTITY" ]; then
-            NOTE="Signée (Developer ID) et notarisée par Apple : s'ouvre sans avertissement."
-          else
-            NOTE="Non signée par un développeur Apple : si macOS affiche « ReAble.app non ouvert », clique sur « Terminé », puis Réglages Système > Confidentialité et sécurité > « Ouvrir quand même » (ou : xattr -dr com.apple.quarantine /Applications/ReAble.app)."
-          fi
-          gh release delete latest --cleanup-tag --yes || true
-          gh release create latest dist/ReAble.dmg "dist/ReAble-$VERSION.dmg" \
-            --prerelease --target "$GITHUB_SHA" \
-            --title "ReAble — dernière version de main ($VERSION)" \
-            --notes "**Version bêta 0.1.** Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon). ReAble n'écrit que des copies de vos projets, mais vérifiez chaque conversion dans Live 12. Un problème, une idée ? Ouvrez une demande depuis « À propos de ReAble » dans l'application.
+          if [ -z "$SIGN_IDENTITY" ]; then echo "::error::Une version numérotée doit être signée et notarisée (secrets manquants)"; exit 1; fi
+          gh release create "$GITHUB_REF_NAME" dist/ReAble.dmg "dist/ReAble-$VERSION.dmg" \
+            --title "ReAble $VERSION" --generate-notes
+          BODY="$(gh release view "$GITHUB_REF_NAME" --json body -q .body)"
+          gh release edit "$GITHUB_REF_NAME" --notes "**Version bêta / Beta ($VERSION)** — Apple Silicon. Vos projets d'origine ne sont jamais modifiés ; vérifiez chaque conversion dans Live 12. / Your original projects are never modified; check every conversion in Live 12. Signée et notarisée par Apple / Signed and notarized by Apple.
 
-          ${NOTE}"
+          ${BODY}"
+
+      - name: Publier le build de développement (nightly)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true      # ancien nom de la version continue
+          gh release delete nightly --cleanup-tag --yes || true
+          gh release create nightly dist/ReAble.dmg "dist/ReAble-$VERSION.dmg" \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Development build ($VERSION)" \
+            --notes "**Build de développement / Development build** — construit à chaque poussée sur main (commit ${GITHUB_SHA::7}), pas la version à télécharger. Pour la version stable, voir la dernière version numérotée. / Built on every push to main; not the recommended download — use the latest numbered release."

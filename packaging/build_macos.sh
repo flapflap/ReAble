@@ -39,7 +39,7 @@ fi
 
 APP="$OUT/ReAble.app"
 # Version lisible dans Finder (Informations)
-SHORT="$(sed -n 's/^__version__ = "\([0-9]*\.[0-9]*\).*/\1/p' src/reable/__init__.py)"   # « 0.1 » : le numéro affiché à l'utilisateur
+SHORT="$(sed -n 's/^__version__ = "\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' src/reable/__init__.py)"   # « 0.1.0 » : Info.plist n'accepte que des chiffres
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${SHORT:-${VERSION#v}}" "$APP/Contents/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION#v}" "$APP/Contents/Info.plist" 2>/dev/null || true
 # Signature « ad hoc » (obligatoire pour qu'un binaire arm64 se lance ; ce n'est PAS une signature de développeur)

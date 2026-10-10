@@ -16,6 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from .. import i18n
 from ..jobs import JobBusy
 from .logic import AppLogic
 
@@ -172,6 +173,9 @@ class App:
                     return self._json(200, L.set_beta(bool(body.get("enabled"))))
                 if path == "/api/beta/export":
                     return self._json(200, {"path": L.export_beta()})
+                if path == "/api/language":
+                    i18n.set_preference(str(body.get("language", "")))
+                    return self._json(200, L.state())
                 if path == "/api/replacement":
                     return self._json(200, L.set_replacement(str(body.get("plugin", "")), str(body.get("target", ""))))
                 if path == "/api/dropped-path":

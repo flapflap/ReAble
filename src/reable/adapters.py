@@ -13,6 +13,7 @@ from __future__ import annotations
 import struct
 import zlib
 
+from .i18n import tr
 from .registry import adapter_of, definition_of
 
 MODES = ("transfer", "header", "none")
@@ -101,9 +102,9 @@ def is_other_plugin(source_name: str, target_name: str) -> bool:
 def state_note(mode: str, plugin_name: str = "") -> str:
     """Phrase pour le texte d'info de piste."""
     if mode == "none":
-        return "Réglages par défaut : le preset d'origine n'a pas été transféré"
+        return tr("Réglages par défaut : le preset d'origine n'a pas été transféré")
     if mode == "header":
-        return "Réglages transférés (en-tête adapté à la nouvelle version) : à vérifier"
+        return tr("Réglages transférés (en-tête adapté à la nouvelle version) : à vérifier")
     if adapter_of(plugin_name) == "izotope":
-        return "Réglages transférés : à vérifier dans le plugin"
-    return "Réglages transférés"
+        return tr("Réglages transférés : à vérifier dans le plugin")
+    return tr("Réglages transférés")

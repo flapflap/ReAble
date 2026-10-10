@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from . import alsfile, inventory, templates as tpl_lib, trace
+from . import i18n, alsfile, inventory, templates as tpl_lib, trace
 from .batch import BatchResult, ConvertOptions, PlanItem, build_template_index, plan, run
 from .extract import extract
 from .jobs import CancelToken, Cancelled, Event, OnEvent, Reporter
@@ -104,10 +104,11 @@ def restore(set_file: str | Path, out_dir: str | Path | None = None,
     res = trace.restore_tree(tree, alsfile.load(Path(original).expanduser()) if original else None)
     if not res.restored:
         return None, res
-    stem = src.stem + " [Restauré]"
+    restored = i18n.tr("Restauré")
+    stem = src.stem + f" [{restored}]"
     for mark in (" [ReAble", " [PlugRescue"):
         if mark in src.stem:
-            stem = src.stem.replace(mark, " [Restauré")
+            stem = src.stem.replace(mark, f" [{restored}")
             break
     dst = Path(out_dir or src.parent) / f"{stem}{src.suffix}"
     if dst.resolve() == src.resolve():

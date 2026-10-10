@@ -10,7 +10,7 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 
-from .. import api, batch, registry, short_version, trace
+from .. import __version__, api, batch, i18n, registry, trace
 from ..batch import ConvertOptions, PlanItem
 from ..jobs import JobBusy, JobManager
 
@@ -142,8 +142,9 @@ class AppLogic:
                 "groups": groups, "summary": summarize(groups) if groups else None,
                 "definitions": len(registry.load_all()),
                 "options": self.opts.to_dict(), "job": cur.snapshot() if cur else None,
-                "written": len(self.last_written), "version": short_version(),
-                "system": platform.mac_ver()[0] or platform.platform()}
+                "written": len(self.last_written), "version": __version__,
+                "system": platform.mac_ver()[0] or platform.platform(),
+                "lang": i18n.language(), "language": i18n.preference()}
 
     # ---- tâches
     def analyze(self, path: str, template_dirs: list[str] | None = None):
@@ -249,7 +250,7 @@ class AppLogic:
     @staticmethod
     def choose_folder() -> str | None:
         try:
-            r = subprocess.run(["osascript", "-e", 'POSIX path of (choose folder with prompt "Dossier de projets Ableton Live")'],
+            r = subprocess.run(["osascript", "-e", f'POSIX path of (choose folder with prompt "{i18n.tr("Dossier de projets Ableton Live")}")'],
                                capture_output=True, text=True, timeout=300)
         except (OSError, subprocess.TimeoutExpired):
             return None

@@ -50,7 +50,7 @@ def save(tree: ET.ElementTree, path: str | Path, backup: bool = True) -> Path:
     return path
 
 
-OUTPUT_MARKS = (" [ReAble", " [PlugRescue", " [Restauré")   # fichiers produits par l'outil (PlugRescue = ancien nom)
+OUTPUT_MARKS = (" [ReAble", " [PlugRescue", " [Restauré", " [Restored")   # fichiers produits par l'outil (PlugRescue = ancien nom)
 
 
 def is_output_file(name: str) -> bool:

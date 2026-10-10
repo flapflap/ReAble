@@ -8,6 +8,7 @@ from pathlib import Path
 
 from . import alsfile, trace
 from .adapters import state_note
+from . import i18n
 from .registry import allowed_families, definition_of, family_of
 from .inventory import Inventory
 from .jobs import CancelToken, OnEvent, Reporter
@@ -299,13 +300,13 @@ def apply_track_info(root, opts: ConvertOptions) -> int:
                   "state_note": state_note(info.get("state_mode", "transfer"), info.get("source_name", "")),
                   "track": _track_name_of(trk),
                   "original_track": _track_name_of(orig) if orig is not None else ""}
-        note.set("Value", trace.set_track_block(note.get("Value", ""), render_lines(opts.track_info_template, values)))
+        note.set("Value", trace.set_track_block(note.get("Value", ""), render_lines(i18n.track_info_template(opts.track_info_template), values)))
         if orig is not None and orig is not trk:
             on = orig.find("Name/Annotation")
             if on is not None:
                 on.set("Value", trace.set_track_block(
-                    on.get("Value", ""), f"Piste d'origine conservée et mutée (plugin {info.get('source_format', '')}).\n"
-                                         f"Remplacée par : {_track_name_of(trk)}"))
+                    on.get("Value", ""), i18n.tr("Piste d'origine conservée et mutée (plugin {fmt}).\nRemplacée par : {track}",
+                                                  fmt=info.get("source_format", ""), track=_track_name_of(trk))))
         n += 1
     return n
 
