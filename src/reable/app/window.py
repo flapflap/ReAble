@@ -33,6 +33,17 @@ class NativeApi:
         r = self.window.create_file_dialog(webview.FOLDER_DIALOG, directory=str(Path.home() / "Music"))
         return str(r[0]) if r else None
 
+    def dropped_path(self, name: str) -> dict:
+        """Chemin réel de l'élément que la page vient de recevoir (la page ne connaît que son nom).
+        pywebview note les chemins déposés (macOS) ; on retrouve celui qui porte ce nom."""
+        from urllib.parse import unquote
+        from webview.dom import _dnd_state
+        for item in list(_dnd_state["paths"]):
+            if unquote(item[0]) == name:
+                _dnd_state["paths"].remove(item)
+                return dropped_folder(unquote(item[1]))
+        return dropped_folder(None)
+
     def open_url(self, url: str) -> bool:
         from .logic import AppLogic
         return AppLogic.open_url(url)
@@ -121,18 +132,14 @@ def run(port: int | None = None) -> int:
         return request_close(app, lambda title, msg: window.create_confirmation_dialog(title, msg))
     window.events.closing += on_closing
 
-    def on_drop(event):
-        files = (event.get("dataTransfer") or {}).get("files") or []
-        path = files[0].get("pywebviewFullPath") if files else None
-        app.logic.push_ui({"type": "drop", "data": dropped_folder(path)})
-
-    def on_loaded():
-        from webview.dom import DOMEventHandler
-        window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)   # empêche la navigation du navigateur
-    window.events.loaded += on_loaded
     def on_shown():
         install_about_item(app.logic.push_ui)
     window.events.shown += on_shown
+    try:                                     # demande à pywebview de relever les chemins déposés (sans passer par evaluate_js)
+        from webview.dom import _dnd_state
+        _dnd_state["num_listeners"] = max(1, _dnd_state.get("num_listeners", 0))
+    except ImportError:
+        pass
     try:
         webview.start()
     finally:

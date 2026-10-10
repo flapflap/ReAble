@@ -194,9 +194,13 @@
   function dropHandlers(el) {
     el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("over"); });
     el.addEventListener("dragleave", () => el.classList.remove("over"));
-    el.addEventListener("drop", (e) => {
+    el.addEventListener("drop", async (e) => {
       e.preventDefault(); el.classList.remove("over");
-      if (!(window.pywebview && window.pywebview.api)) toast("Le glisser-déposer fonctionne dans la fenêtre ReAble. Ici, utilisez « Choisir… ».");
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      const native = window.pywebview && window.pywebview.api && window.pywebview.api.dropped_path;
+      if (!native) { toast("Le glisser-déposer fonctionne dans la fenêtre ReAble. Ici, utilisez « Choisir… »."); return; }
+      if (!f) { toast("Déposez un dossier de projets."); return; }
+      try { window.reableDropped(await window.pywebview.api.dropped_path(f.name)); } catch (err) { toast("Le glisser-déposer a échoué : utilisez « Choisir… »."); }
     });
     return el;
   }

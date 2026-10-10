@@ -49,3 +49,14 @@ def test_dropped_folder(tmp_path):
     assert dropped_folder(str(tmp_path / "Set.als")) == {"path": str(tmp_path)}
     assert "error" in dropped_folder(str(tmp_path / "note.txt"))
     assert "error" in dropped_folder(None)
+
+
+def test_dropped_path_finds_the_real_path_by_name(tmp_path):
+    from webview.dom import _dnd_state
+    from reable.app.window import NativeApi
+    d = tmp_path / "Mes Projets"
+    d.mkdir()
+    _dnd_state["paths"][:] = [("Mes%20Projets", str(d) + "/")]
+    r = NativeApi().dropped_path("Mes Projets")
+    assert r["path"].rstrip("/") == str(d)
+    assert "error" in NativeApi().dropped_path("Mes Projets")        # chemin consommé : un seul usage
