@@ -143,3 +143,6 @@ html,body{margin:0;height:100%;background:var(--pr-bg)}
 .pr :focus-visible{outline:3px solid var(--pr-accent);outline-offset:2px}
 
 .pr .drop.over{border-color:var(--pr-accent);background:var(--pr-accent-soft)}
+
+.pr .titlebar .logo{width:28px;height:28px;border-radius:7px;flex:none;-webkit-app-region:drag}
+.pr .pathrow .btn-primary{flex:none}

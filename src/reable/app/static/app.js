@@ -185,18 +185,22 @@
     const path = native ? await window.pywebview.api.choose_folder() : (await api("/api/choose-folder", {})).path;
     if (path) { S.path = path; render(); }
   }
-  /* Glisser-déposer d'un dossier : le chemin n'est disponible que dans la fenêtre native (pywebviewFullPath). */
+  /* Glisser-déposer : la fenêtre native (pywebview) lit le chemin côté Python puis appelle reableDropped.
+     Ici, le navigateur ne fournit jamais de chemin : on affiche l'explication au lieu de rester muet. */
   function dropHandlers(el) {
     el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("over"); });
     el.addEventListener("dragleave", () => el.classList.remove("over"));
     el.addEventListener("drop", (e) => {
       e.preventDefault(); el.classList.remove("over");
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      const p = f && f.pywebviewFullPath;
-      if (p) { S.path = p; startAnalyze(); } else toast("Déposez le dossier dans la fenêtre ReAble, ou utilisez « Choisir… ».");
+      if (!(window.pywebview && window.pywebview.api)) toast("Le glisser-déposer fonctionne dans la fenêtre ReAble. Ici, utilisez « Choisir… ».");
     });
     return el;
   }
+  window.reableDropped = (r) => {
+    if (busy()) { toast("Une tâche est en cours : attendez la fin ou arrêtez-la avant de choisir un autre dossier."); return; }
+    if (!r || r.error) { toast((r && r.error) || "Dépôt non reconnu : déposez un dossier de projets Live."); return; }
+    S.path = r.path; startAnalyze();
+  };
   async function saveOption(patch) {
     try { S.server = await api("/api/options", patch); } catch (e) { toast(e.message); }
     render();
@@ -231,7 +235,7 @@
   }
   function btn(label, onclick, cls = "btn", extra = {}) { return h("button", { type: "button", class: cls, onclick, ...extra }, label); }
   function nav(label, ic, active, enabled, onclick, right) {
-    return h("div", { class: "nav" + (active ? " on" : "") + (enabled && !active ? " click" : !enabled ? " off" : ""), role: "button", tabindex: enabled ? "0" : "-1",
+    return h("div", { class: "nav" + (active ? " on" : "") + (enabled && !active ? " click" : !enabled && !active ? " off" : ""), role: "button", tabindex: enabled ? "0" : "-1",
       "aria-current": active ? "page" : null, onclick: enabled ? onclick : null,
       onkeydown: enabled ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onclick(); } } : null }, icon(ic, "", 16), label, h("span", { class: "st" }, right || ""));
   }
@@ -255,7 +259,8 @@
     S.view = "plugins"; render();
   }
   function titlebar(sub, ...tools) {
-    return h("div", { class: "titlebar" }, h("div", { class: "ttl" }, h("b", {}, "ReAble"), h("span", {}, sub)), h("div", { class: "tools" }, ...tools));
+    return h("div", { class: "titlebar" }, h("img", { class: "logo", src: "logo.png", alt: "", width: 28, height: 28 }),
+      h("div", { class: "ttl" }, h("b", {}, "ReAble"), sub ? h("span", {}, sub) : null), h("div", { class: "tools" }, ...tools));
   }
   function status(left, right) { return h("div", { class: "status" }, h("span", { class: "grow" }, left), right ? h("span", {}, right) : null); }
   /* Le bouton Arrêter est un élément unique, créé une fois et mis à jour sur place : l'interface se redessine plusieurs fois
@@ -281,10 +286,10 @@
     const input = h("input", { type: "text", value: S.path, placeholder: "~/Music", "aria-label": "Dossier de projets", oninput: (e) => { S.path = e.target.value; update(); } });
     const go = btn("Analyser", startAnalyze, "btn btn-primary", { disabled: !S.path.trim() });
     function update() { go.disabled = !S.path.trim(); }
-    return frame("Aucun dossier choisi", [go],
+    return frame("", [],
       [noDefs(), dropHandlers(h("div", { class: "drop" }, icon("folder", "", 44), h("h2", {}, "Quel dossier de projets analyser ?"),
         h("p", {}, "Glissez un dossier ici, ou choisissez-le. ReAble y cherche les projets Ableton Live (.als) et repère les plugins qui manquent sur ce Mac."),
-        h("div", { class: "pathrow" }, h("div", { class: "input" }, input), btn("Choisir…", pickFolder))))],
+        h("div", { class: "pathrow" }, h("div", { class: "input" }, input), btn("Choisir…", pickFolder), go)))],
       status("Aucun projet analysé.", "Rien n’est modifié pendant l’analyse."));
   }
   function progressBlock(label, total) {

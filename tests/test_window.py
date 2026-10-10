@@ -39,3 +39,13 @@ def test_close_asks_and_stops_the_running_job_cleanly():
     assert request_close(app, lambda t, m: True) is True
     assert job.state == "stopped" and app.logic.jobs.current() is None                       # accepté : arrêt propre
     app.httpd.server_close()
+
+
+def test_dropped_folder(tmp_path):
+    from reable.app.window import dropped_folder
+    (tmp_path / "Set.als").write_bytes(b"")
+    (tmp_path / "note.txt").write_text("x")
+    assert dropped_folder(str(tmp_path)) == {"path": str(tmp_path)}
+    assert dropped_folder(str(tmp_path / "Set.als")) == {"path": str(tmp_path)}
+    assert "error" in dropped_folder(str(tmp_path / "note.txt"))
+    assert "error" in dropped_folder(None)

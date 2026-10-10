@@ -1,6 +1,7 @@
 """Fenêtre native (pywebview) autour du serveur local : sélecteur de dossier macOS, glisser-déposer, fermeture sûre."""
 from __future__ import annotations
 
+import json
 import socket
 import time
 from pathlib import Path
@@ -38,6 +39,18 @@ class NativeApi:
         return AppLogic.reveal(path)
 
 
+def dropped_folder(path: str | None) -> dict:
+    """Interprète un élément déposé sur la fenêtre : un dossier, ou un projet .als (on prend son dossier)."""
+    if not path:
+        return {"error": "Le chemin du dossier déposé n'a pas pu être lu. Utilisez « Choisir… »."}
+    p = Path(path)
+    if p.is_dir():
+        return {"path": str(p)}
+    if p.suffix.lower() == ".als" and p.parent.is_dir():
+        return {"path": str(p.parent)}
+    return {"error": "Déposez un dossier de projets (ou un projet Live .als), pas un autre type de fichier."}
+
+
 def request_close(app: App, confirm) -> bool:
     """Décide si la fenêtre peut se fermer. Pendant une tâche : demande confirmation, puis l'arrête proprement.
 
@@ -67,6 +80,16 @@ def run(port: int | None = None) -> int:
     def on_closing():
         return request_close(app, lambda title, msg: window.create_confirmation_dialog(title, msg))
     window.events.closing += on_closing
+
+    def on_drop(event):
+        files = (event.get("dataTransfer") or {}).get("files") or []
+        path = files[0].get("pywebviewFullPath") if files else None
+        window.evaluate_js(f"window.reableDropped({json.dumps(dropped_folder(path))})")
+
+    def on_loaded():
+        from webview.dom import DOMEventHandler
+        window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)   # empêche la navigation du navigateur
+    window.events.loaded += on_loaded
     try:
         webview.start()
     finally:
