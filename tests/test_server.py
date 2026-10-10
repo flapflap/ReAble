@@ -188,3 +188,30 @@ def test_missing_template_is_its_own_group_not_unsupported():
     assert g[0]["title"] == "Gabarit manquant : Ozone 10" and g[0]["count"] == 2 and not g[0]["selectable"]
     sm = summarize(g)
     assert sm["template_missing"] == 2 and sm["templates_needed"] == ["Ozone 10"] and sm["unsupported_plugins"] == 1
+
+
+def test_one_group_per_conversion_whatever_the_source_format():
+    def it(fmt, path):
+        return PlanItem(path, "Ozone 8", fmt, "Ozone 10", 1, "", "convertible", "l'état de « Ozone 8 » n'est pas repris")
+    g = group_items([it("VST2", "/1.als"), it("VST3", "/2.als"), it("VST3", "/3.als")])
+    assert len(g) == 1 and g[0]["count"] == 3 and g[0]["title"] == "Ozone 8 → Ozone 10"
+    logic = AppLogic()
+    logic.items = [it("VST2", "/1.als"), it("VST3", "/2.als")]
+    assert len(logic._selected_items([g[0]["id"]])) == 2            # cocher le groupe sélectionne les deux sources
+
+
+@needs_set
+def test_projects_with_the_same_name_in_different_folders_get_distinct_keys(tmp_path):
+    """Régression : deux projets de même nom (dossiers différents) étaient confondus par l'interface (copies « perdues »)."""
+    from reable import api
+    from reable.batch import ConvertOptions
+    from reable.jobs import Event
+    for d in ("A", "B"):
+        (tmp_path / "src" / d).mkdir(parents=True)
+        shutil.copy(SET, tmp_path / "src" / d / "Meme nom.als")
+    a = api.analyze(tmp_path / "src")
+    events: list[Event] = []
+    res = api.convert(a, ConvertOptions(only_missing=False, out_dir=tmp_path / "out"), on_event=events.append)
+    done = [e for e in events if e.result in ("converti", "réglages par défaut")]
+    assert len(done) == 2 and len({e.key for e in done}) == 2 and {e.item for e in done} == {"Meme nom"}
+    assert sorted(e.path for e in done) == sorted(res.written) and all(e.key.endswith("Meme nom.als") for e in done)

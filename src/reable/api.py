@@ -42,18 +42,18 @@ def analyze(target: str | Path, plugins_root: list[str] | None = None, include_p
     reports, errors = [], []
     rep = Reporter("analyze", len(files), on_event, cancel)
     for i, f in enumerate(files):
-        rep.step("lecture", f.stem)
+        rep.step("lecture", f.stem, str(f))
         if progress:
             progress("analyse", i, len(files))
         try:
             r = extract(f)
         except Exception as e:
             errors.append(f"{f} : illisible ({e})")
-            rep.finish_item(f.stem, "erreur", str(e))
+            rep.finish_item(f.stem, "erreur", str(e), key=str(f))
             continue
         inventory.check(r.plugins, inv)
         reports.append(r)
-        rep.finish_item(f.stem, "lu")
+        rep.finish_item(f.stem, "lu", key=str(f))
     rep.step("lecture", "gabarits")
     if progress:
         progress("gabarits", 0, len(files))
@@ -84,10 +84,17 @@ def convert(a: Analysis, opts: ConvertOptions, items: list[PlanItem] | None = No
             on_event: OnEvent | None = None, cancel: CancelToken | None = None) -> BatchResult:
     if items is None:
         items = plan(a.reports, a.inventory, a.templates, opts)
+    before = {id(it): (it.status, it.reason) for it in items}
     for it in items:                       # repart d'un état propre avant l'exécution réelle
         if it.status in ("convertible", "converti"):
             it.status, it.reason = "à essayer", ""
-    return run(items, opts, dry_run=False, root_dir=a.root, on_event=on_event, cancel=cancel, task="convert")
+    try:
+        return run(items, opts, dry_run=False, root_dir=a.root, on_event=on_event, cancel=cancel, task="convert")
+    except BaseException:                  # arrêt ou erreur : les éléments non traités redeviennent sélectionnables (« Reprendre »)
+        for it in items:
+            if it.status == "à essayer" and id(it) in before:
+                it.status, it.reason = before[id(it)]
+        raise
 
 
 def restore(set_file: str | Path, out_dir: str | Path | None = None,

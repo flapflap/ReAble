@@ -132,14 +132,15 @@
       const txt = `${e.item} · ${e.result}${e.message ? " · " + e.message : ""}`;
       S.log.push({ t, kind: e.result === "erreur" ? "err" : warn ? "warn" : "ok", text: txt });
       if (S.job.kind === "convert" || S.job.kind === "plan") {
-        const row = S.rows.find((r) => r.name === e.item);
-        if (row) { row.result = e.result; row.path = e.path || row.path; } else S.rows.push({ name: e.item, result: e.result, path: e.path });
+        const id = e.key || e.item;
+        const row = S.rows.find((r) => r.id === id);
+        if (row) { row.result = e.result; row.path = e.path || row.path; } else S.rows.push({ id, name: e.item, result: e.result, path: e.path });
       }
     } else if (e.item && e.phase) {
       const last = S.log[S.log.length - 1];
       const txt = `${e.item} · ${e.phase}`;
       if (!last || last.text !== txt) S.log.push({ t, kind: "", text: txt });
-      if ((S.job.kind === "convert" || S.job.kind === "plan") && !S.rows.find((r) => r.name === e.item)) S.rows.push({ name: e.item, result: "", path: "" });
+      if ((S.job.kind === "convert" || S.job.kind === "plan") && !S.rows.find((r) => r.id === (e.key || e.item))) S.rows.push({ id: e.key || e.item, name: e.item, result: "", path: "" });
     }
     if (S.log.length > 600) S.log.splice(0, 100);
   }
@@ -201,10 +202,10 @@
     render();
   }
   async function undoAll() {
-    const files = (S.summary && S.summary.result && S.summary.result.written) || S.rows.filter((r) => r.path).map((r) => r.path);
-    if (!files.length) { toast("Aucune copie à annuler."); return; }
-    if (!confirm(`Mettre ${plural(files.length, "copie", "copies")} à la corbeille ?\nVos projets d'origine ne sont pas touchés.`)) return;
-    const r = await api("/api/undo", { files });
+    const n = (S.summary && S.summary.result && S.summary.result.written ? S.summary.result.written.length : 0) || S.rows.filter((r) => r.path).length;
+    if (!n) { toast("Aucune copie à annuler."); return; }
+    if (!confirm(`Mettre ${plural(n, "copie", "copies")} à la corbeille ?\nVos projets d'origine ne sont pas touchés.`)) return;
+    const r = await api("/api/undo", {});            // le serveur connaît toutes les copies écrites, même après un arrêt
     toast(`${plural(r.moved.length, "copie mise", "copies mises")} à la corbeille.`);
     S.view = "choose"; S.server = await api("/api/state");
     render();

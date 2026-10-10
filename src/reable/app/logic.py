@@ -21,7 +21,7 @@ def group_items(items: list[PlanItem]) -> list[dict]:
     for it in items:
         if it.status in ("convertible", "converti"):
             kind = "default" if "n'est pas repris" in (it.reason or "") else "validated"
-            key = (kind, it.plugin, it.source_format, it.target_name)
+            key = (kind, it.plugin, "", it.target_name)       # un groupe = une conversion, quel que soit le format d'origine
             title = f"{it.plugin} → {it.target_name}"
         elif it.status == "ignoré":
             key, kind, title = ("done", "", "", ""), "done", "Déjà convertis"
@@ -118,6 +118,7 @@ class AppLogic:
             self.items = api.propose(a, self.opts, on_event=rep.on_event, cancel=cancel)   # 2e étape, avec sa propre progression
             return {"sets": len(a.reports)}
         self.items, self.analysis = [], None
+        self.last_written = []                            # nouvelle analyse : on repart de zéro
         return self.jobs.start("analyze", 0, work)       # total inconnu : il est annoncé par le premier événement
 
     def replan(self) -> None:
@@ -134,7 +135,7 @@ class AppLogic:
             if it.status not in ("convertible", "converti"):
                 continue
             kind = "default" if "n'est pas repris" in (it.reason or "") else "validated"
-            if "|".join((kind, it.plugin, it.source_format, it.target_name)) in wanted:
+            if "|".join((kind, it.plugin, "", it.target_name)) in wanted:
                 sel.append(it)
         return sel
 
@@ -151,10 +152,8 @@ class AppLogic:
             if dry_run:
                 api.propose(a, opts, on_event=rep.on_event, cancel=cancel)
                 return {"written": []}
-            self.last_written = []
-
-            def track(e):                                   # mémorise chaque copie écrite, même si la tâche est arrêtée
-                if e.path:
+            def track(e):                                   # mémorise chaque copie écrite, même si la tâche est arrêtée ;
+                if e.path and e.path not in self.last_written:   # la liste s'accumule d'une reprise à l'autre (annulation complète)
                     self.last_written.append(e.path)
                 rep.on_event(e)
             res = api.convert(a, opts, items, on_event=track, cancel=cancel)

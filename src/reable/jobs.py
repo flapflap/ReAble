@@ -48,6 +48,7 @@ class Event:
     result: str = ""          # converti | réglages par défaut | ignoré | erreur | ""
     message: str = ""
     path: str = ""            # fichier écrit (copie [ReAble]) pour cet élément, s'il y en a un
+    key: str = ""             # identifiant unique de l'élément (chemin du projet) : deux projets peuvent porter le même nom
     elapsed: float = 0.0
     eta: float | None = None  # secondes restantes estimées
 
@@ -71,21 +72,21 @@ class Reporter:
             self.cancel.check()
 
     def emit(self, status: str = "running", phase: str = "", item: str = "", result: str = "", message: str = "",
-             path: str = "") -> None:
+             path: str = "", key: str = "") -> None:
         if self.on_event is None:
             return
         elapsed = time.monotonic() - self.t0
         eta = (elapsed / self.done) * (self.total - self.done) if self.done else None
-        self.on_event(Event(self.task, status, phase, self.done, self.total, item, result, message, path, elapsed, eta))
+        self.on_event(Event(self.task, status, phase, self.done, self.total, item, result, message, path, key, elapsed, eta))
 
-    def step(self, phase: str, item: str) -> None:
+    def step(self, phase: str, item: str, key: str = "") -> None:
         """Vérifie l'arrêt puis annonce la phase : point de contrôle de l'arrêt coopératif."""
         self.check()
-        self.emit(phase=phase, item=item)
+        self.emit(phase=phase, item=item, key=key)
 
-    def finish_item(self, item: str, result: str = "", message: str = "", path: str = "") -> None:
+    def finish_item(self, item: str, result: str = "", message: str = "", path: str = "", key: str = "") -> None:
         self.done += 1
-        self.emit(item=item, result=result, message=message, path=path)
+        self.emit(item=item, result=result, message=message, path=path, key=key)
 
     def end(self, message: str = "") -> None:
         self.emit(status="done", message=message)

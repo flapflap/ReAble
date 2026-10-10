@@ -131,3 +131,62 @@ def test_cancel_in_the_middle_of_a_batch_keeps_finished_sets_and_writes_no_parti
     # reprise : seuls les sets manquants sont faits
     again = api.convert(a, opts)
     assert len(again.written) == 2 and sorted(i.status for i in again.items) == ["converti", "converti", "ignoré"]
+
+
+@needs_set
+def test_items_not_processed_after_a_stop_stay_selectable_for_resume(tmp_path):
+    """Régression : après un arrêt, les projets non traités restaient « à essayer » et « Reprendre » les oubliait."""
+    import shutil
+    from reable.app.logic import AppLogic
+    src = tmp_path / "src"
+    src.mkdir()
+    for n in ("A", "B", "C", "D"):
+        shutil.copy(SET, src / f"{n}.als")
+    logic = AppLogic()
+    logic.set_options({"only_missing": False, "out_dir": str(tmp_path / "out")})
+    a = api.analyze(src)
+    logic.analysis, logic.items = a, api.propose(a, logic.opts)
+    gid = [g["id"] for g in __import__("reable.app.logic", fromlist=["x"]).group_items(logic.items) if g["selectable"]]
+    assert len(logic._selected_items(gid)) == 4
+
+    token = CancelToken()
+    done: list[str] = []
+
+    def stop_after_two(e: Event):
+        if e.result in ("converti", "réglages par défaut"):
+            done.append(e.key)
+            if len(done) == 2:
+                token.cancel()
+    with pytest.raises(Cancelled):
+        api.convert(a, logic.opts, logic._selected_items(gid), on_event=stop_after_two, cancel=token)
+    selectable = logic._selected_items(gid)
+    assert len(selectable) == 4                                     # tous restent sélectionnables : 2 faits + 2 à reprendre
+    res = api.convert(a, logic.opts, selectable)
+    assert len(res.written) == 2                                    # seuls les 2 restants sont écrits
+    assert sorted(i.status for i in res.items) == ["converti", "converti", "ignoré", "ignoré"]
+    assert len(list((tmp_path / "out").rglob("*.als"))) == 4
+
+
+@needs_set
+def test_undo_covers_the_copies_of_every_pass_of_a_resumed_conversion(tmp_path, monkeypatch):
+    import shutil
+    from reable.app.logic import AppLogic
+    fake = tmp_path / "home"
+    (fake / ".Trash").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: fake))
+    src = tmp_path / "src"
+    src.mkdir()
+    for n in ("A", "B", "C"):
+        shutil.copy(SET, src / f"{n}.als")
+    logic = AppLogic()
+    logic.set_options({"only_missing": False})
+    a = api.analyze(src)
+    logic.analysis, logic.items = a, api.propose(a, logic.opts)
+    for it in logic.items[:1]:                                      # première passe : un seul projet
+        pass
+    first = [logic.items[0]]
+    api.convert(a, logic.opts, first, on_event=lambda e: e.path and logic.last_written.append(e.path))
+    api.convert(a, logic.opts, logic.items, on_event=lambda e: e.path and e.path not in logic.last_written and logic.last_written.append(e.path))
+    assert len(logic.last_written) == 3
+    r = logic.undo()
+    assert len(r["moved"]) == 3 and not list(src.glob("*[[]ReAble[]]*.als"))

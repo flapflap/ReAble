@@ -330,12 +330,12 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
     tpl_cache: dict[str, object] = {}
     for set_path, group in by_set.items():
         name = Path(set_path).stem
-        rep.step("lecture", name)
+        rep.step("lecture", name, set_path)
         pending = [g for g in group if g.status != "bloqué"]
         if pending and resolve_output(_out_path(Path(set_path), root_dir, opts), opts.if_exists) is None:
             for it in pending:
                 it.status, it.reason = "ignoré", "déjà converti (le fichier de sortie existe)"
-            rep.finish_item(name, "ignoré", "déjà converti")
+            rep.finish_item(name, "ignoré", "déjà converti", key=set_path)
             continue
         try:
             tree = alsfile.load(set_path)
@@ -343,20 +343,20 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
             res.errors.append(f"{set_path} : illisible ({e})")
             for it in group:
                 it.status, it.reason = "bloqué", "set illisible"
-            rep.finish_item(name, "erreur", "illisible")
+            rep.finish_item(name, "erreur", "illisible", key=set_path)
             continue
         if not schema_ok(tree.getroot()):
             for it in group:
                 if it.status != "bloqué":
                     it.status, it.reason = "bloqué", "set trop ancien (avant Live 11) : l'ouvrir et l'enregistrer dans Live 12"
-            rep.finish_item(name, "ignoré", "trop ancien")
+            rep.finish_item(name, "ignoré", "trop ancien", key=set_path)
             continue
         baseline = set(check_tree(tree.getroot()))
         converted = 0
         for it in group:
             if it.status == "bloqué":
                 continue
-            rep.step("conversion", name)
+            rep.step("conversion", name, set_path)
             if it.template not in tpl_cache:
                 tpl_cache[it.template] = alsfile.load(it.template)
             r = rewrite_tree(tree, it.plugin, tpl_cache[it.template], it.source_format, it.target_name,
@@ -376,10 +376,10 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
                 converted += r.converted
             else:
                 it.status, it.reason = "bloqué", "; ".join(warns) or "rien à convertir"
-        rep.step("contrôle", name)
+        rep.step("contrôle", name, set_path)
         written, written_path = False, ""
         if converted and not dry_run:
-            rep.step("écriture", name)          # dernier point d'arrêt : ensuite l'écriture atomique va à son terme
+            rep.step("écriture", name, set_path)          # dernier point d'arrêt : ensuite l'écriture atomique va à son terme
             apply_rename(tree.getroot(), opts)
             apply_track_info(tree.getroot(), opts)
             dst = resolve_output(_out_path(Path(set_path), root_dir, opts), opts.if_exists)
@@ -391,6 +391,6 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
             written, written_path = True, str(dst)
         defaulted = any("réglages par défaut" in (g.reason or "") for g in group if g.status in ("converti", "convertible"))
         outcome = ("réglages par défaut" if defaulted else "converti") if converted else "ignoré"
-        rep.finish_item(name, outcome, path=written_path)
+        rep.finish_item(name, outcome, path=written_path, key=set_path)
     rep.end(f"{len(res.written)} projet(s) écrit(s)" if not dry_run else "essai à blanc terminé")
     return res
