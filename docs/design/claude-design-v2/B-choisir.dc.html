@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>B Studio — Choisir</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./dir-b.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pr">
+  <div class="titlebar"><div class="lights" aria-hidden="true"><i></i><i></i><i></i></div><div class="ttl"><b>ReAble</b><span>Aucun dossier choisi</span></div><div class="tools"><button class="btn btn-primary" type="button" disabled>Analyser</button></div></div>
+  <div class="wrap"><nav class="sidebar" aria-label="Étapes"><h3>Étapes</h3><div class="nav on" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>1 · Choisir<span class="st"></span></div><div class="nav off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M4 6h16M4 12h16M4 18h10"/></svg>2 · Comprendre<span class="st"></span></div><div class="nav off"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M7 5l12 7-12 7z"/></svg>3 · Convertir<span class="st"></span></div><h3 style="margin-top:12px">Bibliothèque</h3><div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 3l8 4v10l-8 4-8-4V7z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>Plugins<span class="st">16</span></div><div class="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg><span>Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].</span></div></nav><section class="content"><div class="drop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><h2>Quel dossier de projets analyser ?</h2><p>Glissez un dossier ici, ou choisissez-le. ReAble y cherche les projets Ableton Live (.als) et repère les plugins qui manquent sur ce Mac.</p><div class="pathrow"><div class="input" style="color:var(--pr-text-muted)">~/Music/MesProjets</div><button class="btn" type="button">Choisir…</button></div></div></section></div>
+  <div class="status"><span class="grow">Aucun projet analysé.</span><span>Rien n’est modifié pendant l’analyse.</span></div>
+  
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

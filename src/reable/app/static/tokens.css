@@ -1,0 +1,89 @@
+/* Jetons de design ReAble — direction B v2 « utilitaire Mac ».
+   Source : docs/design/claude-design-v2/dir-b.css (maquettes). Clair par défaut, sombre selon le système. */
+:root {
+  --pr-bg:#FFFFFF;
+  --pr-surface:#FFFFFF;
+  --pr-surface-2:#F4F4F6;
+  --pr-sidebar:#EBEBEE;
+  --pr-chrome:#E4E4E8;
+  --pr-text:#1D1D1F;
+  --pr-text-muted:#5C5C63;
+  --pr-border:#D4D4D9;
+  --pr-row-alt:#F7F7F9;
+  --pr-accent:#0A5BD3;
+  --pr-accent-text:#FFFFFF;
+  --pr-accent-soft:#D9E6FA;
+  --pr-ok:#1E6B3F;
+  --pr-ok-soft:#E0F1E7;
+  --pr-warn:#8A5200;
+  --pr-warn-soft:#FAEBD3;
+  --pr-error:#B3261E;
+  --pr-error-soft:#FBE5E3;
+  --pr-neutral:#5C5C63;
+  --pr-neutral-soft:#E9E9EC;
+  --pr-radius-s:4px;
+  --pr-radius-m:6px;
+  --pr-radius-l:10px;
+  --pr-space-1:4px;
+  --pr-space-2:8px;
+  --pr-space-3:12px;
+  --pr-space-4:16px;
+  --pr-space-5:24px;
+  --pr-space-6:32px;
+  --pr-shadow-1:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
+  --pr-shadow-2:0 10px 30px rgba(0,0,0,.2);
+  --pr-font-ui:-apple-system,"SF Pro Text",system-ui,sans-serif;
+  --pr-font-mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --pr-dur-fast:120ms;
+  --pr-dur-normal:180ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pr-bg:#1E1E21;
+    --pr-surface:#1E1E21;
+    --pr-surface-2:#28282C;
+    --pr-sidebar:#2A2A2E;
+    --pr-chrome:#323236;
+    --pr-text:#F2F2F5;
+    --pr-text-muted:#A9A9B2;
+    --pr-border:#3B3B40;
+    --pr-row-alt:#232326;
+    --pr-accent:#6AA2FF;
+    --pr-accent-text:#06214F;
+    --pr-accent-soft:#1E3A6B;
+    --pr-ok:#6CC592;
+    --pr-ok-soft:#1B3225;
+    --pr-warn:#E3A85A;
+    --pr-warn-soft:#392B14;
+    --pr-error:#F28C85;
+    --pr-error-soft:#3D201E;
+    --pr-neutral:#A9A9B2;
+    --pr-neutral-soft:#2E2E33;
+    --pr-shadow-1:0 0 0 .5px rgba(255,255,255,.14),0 1px 2px rgba(0,0,0,.5);
+    --pr-shadow-2:0 10px 30px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --pr-bg:#1E1E21;
+  --pr-surface:#1E1E21;
+  --pr-surface-2:#28282C;
+  --pr-sidebar:#2A2A2E;
+  --pr-chrome:#323236;
+  --pr-text:#F2F2F5;
+  --pr-text-muted:#A9A9B2;
+  --pr-border:#3B3B40;
+  --pr-row-alt:#232326;
+  --pr-accent:#6AA2FF;
+  --pr-accent-text:#06214F;
+  --pr-accent-soft:#1E3A6B;
+  --pr-ok:#6CC592;
+  --pr-ok-soft:#1B3225;
+  --pr-warn:#E3A85A;
+  --pr-warn-soft:#392B14;
+  --pr-error:#F28C85;
+  --pr-error-soft:#3D201E;
+  --pr-neutral:#A9A9B2;
+  --pr-neutral-soft:#2E2E33;
+  --pr-shadow-1:0 0 0 .5px rgba(255,255,255,.14),0 1px 2px rgba(0,0,0,.5);
+  --pr-shadow-2:0 10px 30px rgba(0,0,0,.6);
+}

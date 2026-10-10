@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>A Papier — Comprendre</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./dir-a.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pr">
+  <div class="tb"><i></i><i></i><i></i><span>ReAble</span></div>
+  <div class="hdr">
+    <div class="brand">ReAble</div>
+    <ol class="steps">
+      <li class="step done"><b><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></b>Choisir</li>
+      <li class="sep" aria-hidden="true"></li>
+      <li class="step on" aria-current="step"><b>2</b>Comprendre</li>
+      <li class="sep" aria-hidden="true"></li>
+      <li class="step"><b>3</b>Convertir</li>
+    </ol>
+    <a class="link" href="#plugins">Plugins</a>
+  </div>
+  <div class="body">
+    <section class="main" aria-label="Ce qui va se passer">
+      <div class="sum">
+        <h2>21 projets seront convertis.</h2>
+        <p>Les réglages de <b>18 Ozone 9</b> seront repris dans Ozone 10. Pour 3 projets, Ozone 10 démarrera avec ses <b>réglages par défaut</b> et le nom de l’ancien preset sera noté sur la piste.</p>
+        <p><b>66 projets sont trop anciens</b> : ouvrez-les dans Live 12 et enregistrez-les, puis relancez l’analyse.</p>
+      </div>
+      <div class="groups">
+        <div class="g">
+          <span class="badge b-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Validé</span>
+          <div class="t"><strong>Ozone 9 → Ozone 10 · 18 projets</strong><span>Vos réglages seront repris.</span></div>
+          <a class="link" href="#g1">Voir les projets</a>
+        </div>
+        <div class="g">
+          <span class="badge b-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4a8 8 0 1 0 0 16z"/><circle cx="12" cy="12" r="8"/></svg>Réglages par défaut</span>
+          <div class="t"><strong>Ozone 8 → Ozone 10 · 42 projets</strong><span>Ozone 10 ne sait pas lire les réglages d’Ozone 8. Le nom de l’ancien preset est noté sur la piste.</span></div>
+          <a class="link" href="#g2">Voir les projets</a>
+        </div>
+        <div class="g">
+          <span class="badge b-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Validé</span>
+          <div class="t"><strong>Kontakt 5 → Kontakt 8 · 7 projets</strong><span>La piste est dupliquée : l’originale reste, en sourdine, à côté de la copie.</span></div>
+          <a class="link" href="#g3">Voir les projets</a>
+        </div>
+        <div class="g compact">
+          <span class="badge b-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></svg>Action requise</span>
+          <div class="t"><strong>66 projets trop anciens</strong></div>
+          <a class="link" href="#copier">Copier la liste</a>
+        </div>
+        <div class="g compact">
+          <span class="badge b-neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>Non pris en charge</span>
+          <div class="t"><strong>245 plugins sans équivalent</strong></div>
+          <a class="link" href="#lesquels">Voir lesquels</a>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" type="button">Essai à blanc</button>
+        <button class="btn btn-primary" type="button">Convertir 21 projets</button>
+      </div>
+    </section>
+    <aside class="side" aria-label="Réglages">
+      <h3>Réglages</h3>
+      <div class="set"><div class="k">Piste d’origine</div><div class="v"><span>Dupliquer la piste</span></div></div>
+      <div class="set"><div class="k">Nom des pistes converties</div><div class="v"><span class="mono">{piste} [{de}→{vers}]</span></div>
+        <div class="preview"><span class="k">Aperçu</span><span class="mono">Lead  →  Lead [VST2→VST3]</span></div></div>
+      <div class="set"><div class="k">Texte d’information de la piste</div><div class="v"><span>Activé</span></div></div>
+      <div class="set"><div class="k">Où écrire les copies</div><div class="v"><span>À côté des originaux</span></div></div>
+      <div class="set"><div class="k">Si la copie existe déjà</div><div class="v"><span>Ne pas la refaire</span></div></div>
+    </aside>
+  </div>
+  <div class="foot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg>Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble] dans leur nom.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

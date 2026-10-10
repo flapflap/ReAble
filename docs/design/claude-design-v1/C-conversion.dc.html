@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>C Guidé — Conversion en cours</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./dir-c.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pr">
+  <div class="tb"><i></i><i></i><i></i><span>ReAble</span></div>
+  <div class="hdr">
+    <div class="brand"><i></i>ReAble</div>
+    <div class="stepper" aria-label="Étape 3 sur 3">
+      <span class="lbl">Étape <b>3 sur 3</b> · Convertir</span>
+      <span class="dots" aria-hidden="true"><i class="d"></i><i class="d"></i><i class="n"></i></span>
+    </div>
+    <a class="link" href="#plugins">Plugins</a>
+  </div>
+  <div class="body">
+    <section class="main" aria-label="Conversion en cours">
+      <div class="run">
+        <div class="ring" role="progressbar" aria-valuemin="0" aria-valuemax="51" aria-valuenow="14" aria-label="Projets convertis">
+          <svg viewBox="0 0 150 150" aria-hidden="true">
+            <circle cx="75" cy="75" r="64" fill="none" stroke="var(--pr-surface-2)" stroke-width="14"/>
+            <circle cx="75" cy="75" r="64" fill="none" stroke="var(--pr-accent)" stroke-width="14" stroke-linecap="round" stroke-dasharray="110.4 402.1" transform="rotate(-90 75 75)"/>
+          </svg>
+          <div class="n"><b>14</b><span>sur 51 projets</span></div>
+        </div>
+        <div class="info">
+          <h2>Conversion en cours</h2>
+          <div class="now">Écoulé 02:10 · reste environ 5 min 30<b>Projet 12</b></div>
+          <div class="path" aria-label="Phase en cours">
+            <div class="pt d"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Lecture</div>
+            <div class="ln d"></div>
+            <div class="pt d"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Conversion</div>
+            <div class="ln d"></div>
+            <div class="pt n"><i></i>Contrôle</div>
+            <div class="ln"></div>
+            <div class="pt"><i></i>Écriture</div>
+          </div>
+          <div class="pills">
+            <span class="pill p-ok"><b>12</b>convertis</span>
+            <span class="pill p-warn"><b>2</b>réglages par défaut</span>
+            <span class="pill p-neutral"><b>0</b>ignorés</span>
+            <span class="pill p-error"><b>0</b>erreurs</span>
+          </div>
+        </div>
+      </div>
+      <div class="jr"><span class="mono">10:42:07</span><span><b>Projet 12</b> · conversion Ozone 8 → Ozone 10…</span><a class="link" href="#journal">Afficher le journal</a></div>
+      <div class="actions">
+        <span class="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg>Vous pouvez arrêter à tout moment : le projet en cours est abandonné proprement, les projets déjà faits sont conservés.</span>
+        <button class="btn btn-stop" type="button"><i></i>Arrêter</button>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

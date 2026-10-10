@@ -1,0 +1,182 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-09T17:50:00Z"
+ },
+ "title": "ReAble — directions d'interface",
+ "launch": {
+  "view": "canvas"
+ },
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1100,
+   "h": 720,
+   "title": "A · Papier — ② Comprendre"
+  },
+  "A-conversion.dc.html": {
+   "x": 1180,
+   "y": 0,
+   "w": 1100,
+   "h": 720,
+   "title": "A · Papier — ③ Conversion en cours"
+  },
+  "A-comprendre-sombre.dc.html": {
+   "x": 2360,
+   "y": 0,
+   "w": 1100,
+   "h": 720,
+   "title": "A · Papier — ② Comprendre (sombre)"
+  },
+  "B-comprendre.dc.html": {
+   "x": 0,
+   "y": 1100,
+   "w": 1100,
+   "h": 720,
+   "title": "B · Studio — ② Comprendre"
+  },
+  "B-conversion.dc.html": {
+   "x": 1180,
+   "y": 1100,
+   "w": 1100,
+   "h": 720,
+   "title": "B · Studio — ③ Conversion en cours"
+  },
+  "B-comprendre-sombre.dc.html": {
+   "x": 2360,
+   "y": 1100,
+   "w": 1100,
+   "h": 720,
+   "title": "B · Studio — ② Comprendre (sombre)"
+  },
+  "C-comprendre.dc.html": {
+   "x": 0,
+   "y": 2180,
+   "w": 1100,
+   "h": 720,
+   "title": "C · Guidé — ② Comprendre"
+  },
+  "C-conversion.dc.html": {
+   "x": 1180,
+   "y": 2180,
+   "w": 1100,
+   "h": 720,
+   "title": "C · Guidé — ③ Conversion en cours"
+  },
+  "C-comprendre-sombre.dc.html": {
+   "x": 2360,
+   "y": 2180,
+   "w": 1100,
+   "h": 720,
+   "title": "C · Guidé — ② Comprendre (sombre)"
+  },
+  "B-choisir.dc.html": {
+   "x": 0,
+   "y": 3400,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — ① Choisir (vide)"
+  },
+  "B-analyse.dc.html": {
+   "x": 1180,
+   "y": 3400,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Analyse en cours"
+  },
+  "B-bilan.dc.html": {
+   "x": 2360,
+   "y": 3400,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Bilan — succès"
+  },
+  "B-arret.dc.html": {
+   "x": 0,
+   "y": 4300,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Bilan — arrêté"
+  },
+  "B-rien.dc.html": {
+   "x": 1180,
+   "y": 4300,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Rien à convertir"
+  },
+  "B-erreur.dc.html": {
+   "x": 2360,
+   "y": 4300,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Erreur"
+  },
+  "B-plugins.dc.html": {
+   "x": 0,
+   "y": 5200,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Plugins"
+  },
+  "B-confirmation.dc.html": {
+   "x": 1180,
+   "y": 5200,
+   "w": 1100,
+   "h": 720,
+   "title": "B v2 — Confirmation de fermeture"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "A-conversion.dc.html",
+  "A-comprendre-sombre.dc.html",
+  "B-comprendre.dc.html",
+  "B-conversion.dc.html",
+  "B-comprendre-sombre.dc.html",
+  "C-comprendre.dc.html",
+  "C-conversion.dc.html",
+  "C-comprendre-sombre.dc.html",
+  "B-choisir.dc.html",
+  "B-analyse.dc.html",
+  "B-bilan.dc.html",
+  "B-arret.dc.html",
+  "B-rien.dc.html",
+  "B-erreur.dc.html",
+  "B-plugins.dc.html",
+  "B-confirmation.dc.html"
+ ],
+ "notes": {
+  "dirA": {
+   "x": 0,
+   "y": -260,
+   "text": "A · Papier — très épuré, serif, vert-de-gris",
+   "kind": "title1",
+   "maxW": 3460
+  },
+  "dirB": {
+   "x": 0,
+   "y": 840,
+   "text": "B · Studio — dense, rail d'étapes, indigo",
+   "kind": "title1",
+   "maxW": 3460
+  },
+  "dirC": {
+   "x": 0,
+   "y": 1920,
+   "text": "C · Guidé — pédagogique, grandes cartes, terre cuite",
+   "kind": "title1",
+   "maxW": 3460
+  },
+  "dirB2": {
+   "x": 0,
+   "y": 3140,
+   "text": "B v2 (retenue) — écrans complémentaires, style utilitaire Mac",
+   "kind": "title1",
+   "maxW": 3460
+  }
+ },
+ "designSystems": []
+}

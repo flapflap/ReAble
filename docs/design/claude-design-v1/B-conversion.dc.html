@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>B Studio — Conversion en cours</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./dir-b.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pr">
+  <div class="tb"><i></i><i></i><i></i><span>ReAble</span></div>
+  <div class="wrap">
+    <nav class="rail" aria-label="Étapes">
+      <div class="brand"><i></i>ReAble</div>
+      <ol class="steps">
+        <li class="step done"><b><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></b><div><strong>Choisir</strong><span>~/Music/MesProjets</span></div></li>
+        <li class="step done"><b><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></b><div><strong>Comprendre</strong><span>51 projets à convertir</span></div></li>
+        <li class="step on" aria-current="step"><b>3</b><div><strong>Convertir</strong><span>En cours…</span></div></li>
+      </ol>
+      <a href="#plugins">Plugins</a>
+      <div class="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg><span>Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].</span></div>
+    </nav>
+    <section class="center" aria-label="Conversion en cours">
+      <div class="top"><h2>Conversion en cours</h2><span class="chip">~/Music/MesProjets</span></div>
+      <div class="run">
+        <div class="row">
+          <div class="big">14 <small>/ 51 projets</small></div>
+          <div class="time">Écoulé <b>02:10</b> · reste environ <b>5 min 30</b></div>
+        </div>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="51" aria-valuenow="14" aria-label="Projets convertis"><i></i></div>
+        <div>
+          <div style="color:var(--pr-text-muted);font-size:12px;margin-bottom:6px">Maintenant : <b style="color:var(--pr-text);font-size:14px">Projet 12</b></div>
+          <div class="phases" aria-label="Phase en cours">
+            <span class="ph done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Lecture</span>
+            <span class="ph done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Conversion</span>
+            <span class="ph on">Contrôle</span>
+            <span class="ph">Écriture</span>
+          </div>
+        </div>
+        <div class="counts">
+          <div class="cnt"><b style="color:var(--pr-ok)">12</b><span>convertis</span></div>
+          <div class="cnt"><b style="color:var(--pr-warn)">2</b><span>réglages<br>par défaut</span></div>
+          <div class="cnt"><b style="color:var(--pr-neutral)">0</b><span>ignorés</span></div>
+          <div class="cnt"><b style="color:var(--pr-error)">0</b><span>erreurs</span></div>
+        </div>
+        <div class="log" role="log" aria-label="Journal">
+          <div><time>10:42:01</time><span class="ok">✓ Projet 10 · Ozone 8 → Ozone 10</span></div>
+          <div><time>10:42:03</time><span class="ok">✓ Projet 11 · Ozone 8 → Ozone 10</span></div>
+          <div><time>10:42:05</time><span>… Projet 12 · lecture</span></div>
+          <div><time>10:42:07</time><span>… Projet 12 · conversion Ozone 8 → Ozone 10</span></div>
+        </div>
+      </div>
+      <div class="actions">
+        <span style="margin-right:auto;color:var(--pr-text-muted);font-size:12px">Arrêt possible à tout moment : le projet en cours est abandonné proprement.</span>
+        <button class="btn btn-stop" type="button"><i></i>Arrêter</button>
+      </div>
+    </section>
+    <aside class="side lock" aria-label="Réglages verrouillés">
+      <h3>Réglages · verrouillés</h3>
+      <div class="acc"><div class="h">Piste d’origine</div><div class="v">Dupliquer la piste</div></div>
+      <div class="acc"><div class="h">Nom des pistes</div><div class="v mono">{piste} [{de}→{vers}]</div></div>
+      <div class="acc"><div class="h">Où écrire</div><div class="v">À côté des originaux</div></div>
+      <div class="acc"><div class="h">Si la copie existe</div><div class="v">Ne pas la refaire</div></div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+{
+ "schema": "reable-definitions/1",
+ "definitions": [
+  {
+   "id": "play",
+   "match": [
+    "^play$"
+   ],
+   "vendor": "EastWest",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "fabfilter pro-c",
+   "match": [
+    "^fabfilter pro-c\\b"
+   ],
+   "vendor": "FabFilter",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "fabfilter pro-l",
+   "match": [
+    "^fabfilter pro-l\\b"
+   ],
+   "vendor": "FabFilter",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "fabfilter pro-mb",
+   "match": [
+    "^fabfilter pro-mb\\b"
+   ],
+   "vendor": "FabFilter",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "fabfilter pro-q",
+   "match": [
+    "^fabfilter pro-q\\b"
+   ],
+   "vendor": "FabFilter",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "t-racks",
+   "match": [
+    "^t-?racks\\b"
+   ],
+   "vendor": "IK Multimedia",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "nectar",
+   "match": [
+    "^(izotope )?nectar\\b"
+   ],
+   "vendor": "iZotope",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  },
+  {
+   "id": "neutron",
+   "match": [
+    "^(izotope )?neutron\\b"
+   ],
+   "vendor": "iZotope",
+   "adapter": "izotope",
+   "decoder": "izotope_json",
+   "status": "experimental",
+   "validated": []
+  },
+  {
+   "id": "ozone",
+   "match": [
+    "^(izotope )?ozone\\b"
+   ],
+   "vendor": "iZotope",
+   "adapter": "izotope",
+   "decoder": "izotope_json",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "result": "ok",
+     "by": "maintainer",
+     "note": "Ozone 9 (VST2 et VST3) → Ozone 10 VST3 : réglages repris (63/64 et 65/65 valeurs, vérifié par re-sauvegarde dans Live) à condition d'écrire aussi ControllerState."
+    },
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "result": "ko",
+     "by": "maintainer",
+     "note": "Ozone 8 (VST3) et Ozone 7 (VST2) → Ozone 10 : l'état est ignoré (Ozone 10 ré-enregistre ses réglages par défaut, 0 écart sur 1346 valeurs). Structure des réglages différente."
+    }
+   ],
+   "notes": "Ozone 9 → 10 : l'état est repris si ControllerState contient aussi l'état. Ozone 8 et antérieurs : état ignoré par Ozone 10 ; la conversion installe alors Ozone 10 avec ses réglages par défaut et garde l'ancien nom de preset en note.",
+   "copy_controller_state": true,
+   "preferred_state_mode": "transfer",
+   "state_transfer_from": [
+    "^(izotope )?ozone 9\\b",
+    "^(izotope )?ozone 10\\b"
+   ]
+  },
+  {
+   "id": "absynth",
+   "match": [
+    "^absynth\\b"
+   ],
+   "vendor": "Native Instruments",
+   "adapter": "container-copy",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "by": "maintainer",
+     "note": "même conteneur que Kontakt/Massive (non rejoué sur Absynth seul)"
+    }
+   ]
+  },
+  {
+   "id": "battery",
+   "match": [
+    "^battery\\b"
+   ],
+   "vendor": "Native Instruments",
+   "adapter": "container-copy",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "by": "maintainer",
+     "note": "même conteneur (déjà en VST3 dans les sets)"
+    }
+   ]
+  },
+  {
+   "id": "fm8",
+   "match": [
+    "^fm8\\b"
+   ],
+   "vendor": "Native Instruments",
+   "adapter": "container-copy",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "by": "maintainer",
+     "note": "même conteneur que Kontakt/Massive (non rejoué sur FM8 seul)"
+    }
+   ]
+  },
+  {
+   "id": "kontakt",
+   "match": [
+    "^kontakt\\b"
+   ],
+   "vendor": "Native Instruments",
+   "adapter": "container-copy",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "by": "maintainer",
+     "note": "VST2 → VST3, Kontakt 5 → 8"
+    }
+   ]
+  },
+  {
+   "id": "massive x",
+   "match": [
+    "^massive x$"
+   ],
+   "vendor": "Native Instruments",
+   "adapter": "container-copy",
+   "decoder": "ni_msgpack",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "by": "maintainer",
+     "note": "AU → VST3, duplication de piste"
+    }
+   ]
+  },
+  {
+   "id": "massive",
+   "match": [
+    "^massive$"
+   ],
+   "vendor": "Native Instruments",
+   "adapter": "container-copy",
+   "status": "validated",
+   "validated": [
+    {
+     "live": "12.4",
+     "date": "2026-10-09",
+     "variant": "transfer",
+     "by": "maintainer",
+     "note": "VST2 → VST3"
+    }
+   ]
+  },
+  {
+   "id": "wlm",
+   "match": [
+    "^wlm\\b"
+   ],
+   "vendor": "Waves",
+   "adapter": null,
+   "status": "unsupported",
+   "validated": []
+  }
+ ]
+}

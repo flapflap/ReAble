@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>B Studio — Comprendre (sombre)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./dir-b.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pr dark">
+  <div class="tb"><i></i><i></i><i></i><span>ReAble</span></div>
+  <div class="wrap">
+    <nav class="rail" aria-label="Étapes">
+      <div class="brand"><i></i>ReAble</div>
+      <ol class="steps">
+        <li class="step done"><b><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></b><div><strong>Choisir</strong><span>~/Music/MesProjets</span></div></li>
+        <li class="step on" aria-current="step"><b>2</b><div><strong>Comprendre</strong><span>Ce qui va se passer</span></div></li>
+        <li class="step"><b>3</b><div><strong>Convertir</strong><span>Suivi et arrêt possible</span></div></li>
+      </ol>
+      <a href="#plugins">Plugins</a>
+      <div class="safe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg><span>Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].</span></div>
+    </nav>
+    <section class="center" aria-label="Ce qui va se passer">
+      <div class="top"><h2>Comprendre ce qui va se passer</h2><span class="chip">~/Music/MesProjets · 365 projets</span></div>
+      <div class="stats">
+        <div class="stat go"><b>21</b><span>projets seront convertis</span></div>
+        <div class="stat"><b>66</b><span>trop anciens : à ouvrir dans Live 12</span></div>
+        <div class="stat"><b>245</b><span>plugins sans équivalent</span></div>
+      </div>
+      <table>
+        <thead><tr><th>État</th><th>Conversion</th><th style="text-align:right">Projets</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="badge b-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Validé</span></td>
+            <td><strong>Ozone 9 → Ozone 10</strong><span class="sub">Vos réglages seront repris.</span></td>
+            <td class="n">18</td><td><a href="#g1">Voir</a></td>
+          </tr>
+          <tr>
+            <td><span class="badge b-warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M12 4a8 8 0 1 0 0 16z"/><circle cx="12" cy="12" r="8"/></svg>Par défaut</span></td>
+            <td><strong>Ozone 8 → Ozone 10</strong><span class="sub">Ozone 10 ne lit pas les réglages d’Ozone 8 : réglages par défaut, ancien preset noté sur la piste.</span></td>
+            <td class="n">42</td><td><a href="#g2">Voir</a></td>
+          </tr>
+          <tr>
+            <td><span class="badge b-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Validé</span></td>
+            <td><strong>Kontakt 5 → Kontakt 8</strong><span class="sub">Piste dupliquée : l’originale reste, en sourdine, à côté de la copie.</span></td>
+            <td class="n">7</td><td><a href="#g3">Voir</a></td>
+          </tr>
+          <tr>
+            <td><span class="badge b-error"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></svg>Action requise</span></td>
+            <td><strong>Projets trop anciens</strong><span class="sub">À ouvrir et enregistrer dans Live 12, puis relancer l’analyse.</span></td>
+            <td class="n">66</td><td><a href="#copier">Copier la liste</a></td>
+          </tr>
+          <tr>
+            <td><span class="badge b-neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>Non géré</span></td>
+            <td><strong>Plugins sans équivalent</strong><span class="sub">FabFilter, Play… ReAble ne sait pas encore les convertir.</span></td>
+            <td class="n">245</td><td><a href="#lesquels">Voir lesquels</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="actions">
+        <button class="btn" type="button">Essai à blanc</button>
+        <button class="btn btn-primary" type="button">Convertir 21 projets</button>
+      </div>
+    </section>
+    <aside class="side" aria-label="Réglages">
+      <h3>Réglages</h3>
+      <div class="acc"><div class="h">Piste d’origine<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div><div class="v">Dupliquer la piste</div></div>
+      <div class="acc"><div class="h">Nom des pistes<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div><div class="v mono">{piste} [{de}→{vers}]</div>
+        <div class="pv"><span style="color:var(--pr-text-muted)">Aperçu</span><span class="mono">Lead → Lead [VST2→VST3]</span></div></div>
+      <div class="acc"><div class="h">Texte d’information<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div><div class="v">Activé</div></div>
+      <div class="acc"><div class="h">Plugins autorisés<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div><div class="v">Ozone, Kontakt, Massive, FM8…</div></div>
+      <div class="acc"><div class="h">Où écrire<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div><div class="v">À côté des originaux</div></div>
+      <div class="acc"><div class="h">Si la copie existe<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></div><div class="v">Ne pas la refaire</div></div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+import http.client
+import json
+import shutil
+import time
+from pathlib import Path
+
+import pytest
+
+from reable.app.logic import AppLogic, group_items, summarize
+from reable.app.server import App
+from reable.batch import PlanItem
+
+SET = Path(__file__).parents[1] / "Test Plugins AU VST3 Project" / "Test Plugins AU VST3.als"
+needs_set = pytest.mark.skipif(not SET.exists(), reason="set de test absent (non versionné)")
+
+
+@pytest.fixture
+def app():
+    a = App(port=0)
+    a.start()
+    yield a
+    a.stop()
+
+
+def call(app, method, path, body=None, token=True, host=None, origin=None):
+    c = http.client.HTTPConnection("127.0.0.1", app.port, timeout=10)
+    h = {"Content-Type": "application/json"}
+    if token is True:
+        h["X-ReAble-Token"] = app.token
+    elif token:
+        h["X-ReAble-Token"] = token
+    if host:
+        h["Host"] = host
+    if origin:
+        h["Origin"] = origin
+    c.request(method, path, json.dumps(body) if body is not None else None, h)
+    r = c.getresponse()
+    raw = r.read()
+    c.close()
+    try:
+        return r.status, json.loads(raw)
+    except ValueError:
+        return r.status, raw
+
+
+def wait_job(app, job_id, timeout=20):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        _, snap = call(app, "GET", f"/api/jobs/{job_id}")
+        if snap["state"] not in ("running", "stopping"):
+            return snap
+        time.sleep(0.05)
+    raise AssertionError("tâche trop longue")
+
+
+def test_api_requires_the_token(app):
+    assert call(app, "GET", "/api/state", token=False)[0] == 401
+    assert call(app, "GET", "/api/state", token="mauvais")[0] == 401
+    assert call(app, "GET", "/api/state")[0] == 200
+
+
+def test_rejects_foreign_host_and_origin(app):
+    assert call(app, "GET", "/api/state", host="evil.example.com")[0] == 403          # DNS rebinding
+    assert call(app, "GET", "/api/state", origin="https://evil.example.com")[0] == 403  # appel depuis un site web
+    assert call(app, "GET", "/api/state", origin=f"http://127.0.0.1:{app.port}")[0] == 200
+
+
+def test_static_page_embeds_the_token_and_blocks_path_traversal(app):
+    st, body = call(app, "GET", "/", token=False)
+    assert st == 200 and app.token.encode() in body and b"__TOKEN__" not in body
+    assert call(app, "GET", "/../logic.py", token=False)[0] in (403, 404)
+    assert call(app, "GET", "/%2e%2e/logic.py", token=False)[0] in (403, 404)
+    assert call(app, "GET", "/tokens.css", token=False)[0] == 200
+
+
+def test_unknown_route_and_bad_body(app):
+    assert call(app, "POST", "/api/nope", {})[0] == 404
+    assert call(app, "POST", "/api/analyze", {"path": "/chemin/qui/n/existe/pas"})[0] == 400
+
+
+def test_group_items_and_summary():
+    def it(plugin, status, reason="", target="Ozone 10", fmt="VST2", path="/a.als"):
+        return PlanItem(path, plugin, fmt, target, 1, "", status, reason)
+    items = [it("Ozone 9", "convertible", path="/1.als"), it("Ozone 9", "convertible", path="/2.als"),
+             it("Ozone 8", "convertible", "l'état de « Ozone 8 » n'est pas repris par la version cible", path="/3.als"),
+             it("X", "bloqué", "set trop ancien (avant Live 11)", path="/4.als"),
+             it("FabFilter", "bloqué", "pas de plugin VST3 compatible installé", target="", path="/5.als"),
+             it("Y", "ignoré", "déjà converti", path="/6.als")]
+    g = group_items(items)
+    assert [x["kind"] for x in g] == ["validated", "default", "old", "unsupported", "done"]
+    assert g[0]["count"] == 2 and g[0]["selectable"] and not g[2]["selectable"]
+    assert summarize(g) == {"to_convert": 3, "default_settings": 1, "too_old": 1, "unsupported_plugins": 1, "already_done": 1}
+
+
+@needs_set
+def test_analyze_then_convert_end_to_end(app, tmp_path):
+    folder = tmp_path / "projets"
+    folder.mkdir()
+    shutil.copy(SET, folder / "Test.als")
+    st, r = call(app, "POST", "/api/options", {"only_missing": False, "out_dir": str(tmp_path / "out")})
+    assert st == 200
+    st, r = call(app, "POST", "/api/analyze", {"path": str(folder)})
+    assert st == 202
+    snap = wait_job(app, r["job"])
+    assert snap["state"] == "done" and snap["last"]["status"] == "done"
+    _, state = call(app, "GET", "/api/state")
+    assert state["analyzed"] and state["summary"]["to_convert"] == 1
+    g = [x for x in state["groups"] if x["selectable"]][0]
+    st, r = call(app, "POST", "/api/convert", {"groups": [g["id"]]})
+    assert st == 202
+    snap = wait_job(app, r["job"])
+    assert snap["state"] == "done"
+    assert [p.name for p in (tmp_path / "out").rglob("*.als")] == ["Test [ReAble].als"]
+    # le journal est lisible par morceaux
+    _, tail = call(app, "GET", f"/api/jobs/{r['job']}?since={snap['total_events'] - 1}")
+    assert len(tail["events"]) == 1
+
+
+@needs_set
+def test_stop_through_the_api_and_one_job_at_a_time(app, tmp_path):
+    folder = tmp_path / "projets"
+    folder.mkdir()
+    for n in range(40):
+        shutil.copy(SET, folder / f"S{n:02d}.als")
+    st, r = call(app, "POST", "/api/analyze", {"path": str(folder)})
+    job = r["job"]
+    assert call(app, "POST", "/api/analyze", {"path": str(folder)})[0] == 409          # une seule tâche à la fois
+    assert call(app, "POST", f"/api/jobs/{job}/stop", {})[1] == {"stopping": True}
+    snap = wait_job(app, job)
+    assert snap["state"] in ("stopped", "done")                                          # arrêté (ou déjà fini si très rapide)
+    assert call(app, "POST", f"/api/jobs/{job}/stop", {})[1] == {"stopping": False}      # déjà terminé
+
+
+def test_options_are_validated_and_persisted(app):
+    st, state = call(app, "POST", "/api/options", {"rename_template": "{track} — {preset}", "replace_mode": "replace"})
+    assert st == 200 and state["options"]["rename_template"] == "{track} — {preset}"
+    assert AppLogic().load_options().rename_template == "{track} — {preset}"            # relu depuis le disque
+
+
+@needs_set
+def test_undo_moves_only_reable_copies_to_trash(app, tmp_path, monkeypatch):
+    fake_home = tmp_path / "home"
+    (fake_home / ".Trash").mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: fake_home))
+    folder = tmp_path / "projets"
+    folder.mkdir()
+    shutil.copy(SET, folder / "Test.als")
+    call(app, "POST", "/api/options", {"only_missing": False})
+    wait_job(app, call(app, "POST", "/api/analyze", {"path": str(folder)})[1]["job"])
+    g = [x for x in call(app, "GET", "/api/state")[1]["groups"] if x["selectable"]][0]
+    snap = wait_job(app, call(app, "POST", "/api/convert", {"groups": [g["id"]]})[1]["job"])
+    written = snap["result"]["written"]
+    assert len(written) == 1 and Path(written[0]).exists()
+    # le chemin de chaque copie est dans les événements (nécessaire pour annuler après un arrêt)
+    assert any(e["path"] == written[0] for e in snap["events"])
+    # un fichier qui n'est pas une copie ReAble est refusé
+    original = folder / "Test.als"
+    st, r = call(app, "POST", "/api/undo", {"files": [str(original)]})
+    assert r["moved"] == [] and r["refused"] == [str(original)] and original.exists()
+    st, r = call(app, "POST", "/api/undo", {"files": written})
+    assert r["moved"] == written and not Path(written[0]).exists()
+    assert [p.name for p in (fake_home / ".Trash").iterdir()] == ["Test [ReAble].als"]
+
+
+def test_app_default_keeps_the_original_track():
+    assert AppLogic().opts.replace_mode == "duplicate_track"
+
+
+def test_counts_are_per_project_not_per_plugin():
+    from reable.app.logic import _counts
+
+    def it(path, status, reason=""):
+        return PlanItem(path, "P", "VST2", "T", 1, "", status, reason)
+    c = _counts([it("/a", "converti"), it("/a", "converti", "n'est pas repris"), it("/b", "converti", "n'est pas repris"),
+                 it("/c", "ignoré")])
+    assert c == {"converted": 1, "default": 1, "skipped": 1, "errors": 0}      # 3 projets, pas 4 conversions

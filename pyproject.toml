@@ -1,0 +1,20 @@
+[project]
+name = "reable"
+version = "0.1.0"
+description = "Analyse des sets Ableton Live : plugins manquants, presets, paramètres, automations."
+requires-python = ">=3.10"
+dependencies = ["msgpack>=1.0"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+app = ["pywebview>=5"]
+
+[project.scripts]
+reable = "reable.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

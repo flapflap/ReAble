@@ -1,0 +1,24 @@
+{
+ "only_missing": false,
+ "families": [
+  "absynth",
+  "battery",
+  "fm8",
+  "kontakt",
+  "massive",
+  "massive x"
+ ],
+ "mapping": {},
+ "skip_plugins": [],
+ "replace_mode": "duplicate_track",
+ "mute_original": true,
+ "original_suffix": " [original]",
+ "rename_target": "track",
+ "rename_template": "{track} — {preset}",
+ "missing_preset": "omit",
+ "write_note": true,
+ "embed_original": true,
+ "max_embed_kb": 100,
+ "out_dir": "tests-live/options/H1-test-massivex",
+ "suffix": ""
+}

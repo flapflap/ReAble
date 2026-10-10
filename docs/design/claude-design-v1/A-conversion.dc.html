@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>A Papier — Conversion en cours</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./dir-a.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="pr">
+  <div class="tb"><i></i><i></i><i></i><span>ReAble</span></div>
+  <div class="hdr">
+    <div class="brand">ReAble</div>
+    <ol class="steps">
+      <li class="step done"><b><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></b>Choisir</li>
+      <li class="sep" aria-hidden="true"></li>
+      <li class="step done"><b><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></b>Comprendre</li>
+      <li class="sep" aria-hidden="true"></li>
+      <li class="step on" aria-current="step"><b>3</b>Convertir</li>
+    </ol>
+    <a class="link" href="#plugins">Plugins</a>
+  </div>
+  <div class="body">
+    <section class="main" aria-label="Conversion en cours">
+      <div class="run">
+        <h2>Conversion en cours</h2>
+        <div>
+          <div class="meta"><span><b>14</b> / 51 projets</span><span>Écoulé <b>02:10</b> · reste environ <b>5 min 30</b></span></div>
+          <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="51" aria-valuenow="14" aria-label="Projets convertis" style="margin-top:8px"><i></i></div>
+        </div>
+        <div>
+          <div style="font-size:14px;color:var(--pr-text-muted)">Maintenant</div>
+          <div style="font-size:17px;font-weight:600;margin:2px 0 10px">Projet 12</div>
+          <div class="phases" aria-label="Phase en cours">
+            <span class="ph done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Lecture</span>
+            <span class="ph done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Conversion</span>
+            <span class="ph on">Contrôle</span>
+            <span class="ph">Écriture</span>
+          </div>
+        </div>
+        <div class="counts">
+          <div class="cnt"><b>12</b><span><svg viewBox="0 0 24 24" fill="none" stroke="var(--pr-ok)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>convertis</span></div>
+          <div class="cnt"><b>2</b><span><svg viewBox="0 0 24 24" fill="none" stroke="var(--pr-warn)" stroke-width="2.4" aria-hidden="true"><path d="M12 4a8 8 0 1 0 0 16z"/><circle cx="12" cy="12" r="8"/></svg>réglages par défaut</span></div>
+          <div class="cnt"><b>0</b><span><svg viewBox="0 0 24 24" fill="none" stroke="var(--pr-neutral)" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>ignorés</span></div>
+          <div class="cnt"><b>0</b><span><svg viewBox="0 0 24 24" fill="none" stroke="var(--pr-error)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></svg>erreurs</span></div>
+        </div>
+        <div class="log" role="log" aria-label="Journal">
+          <div><time>10:42:01</time><span class="ok">Projet 10 · Ozone 8 → Ozone 10 · réglages par défaut</span></div>
+          <div><time>10:42:03</time><span class="ok">Projet 11 · Ozone 8 → Ozone 10 · réglages par défaut</span></div>
+          <div><time>10:42:05</time><span>Projet 12 · lecture…</span></div>
+          <div><time>10:42:07</time><span>Projet 12 · conversion Ozone 8 → Ozone 10…</span></div>
+        </div>
+      </div>
+      <div class="actions">
+        <span style="margin-right:auto;font-size:13px;color:var(--pr-text-muted)">Vous pouvez arrêter à tout moment : le projet en cours est abandonné proprement.</span>
+        <button class="btn btn-stop" type="button"><i></i>Arrêter</button>
+      </div>
+    </section>
+    <aside class="side lock" aria-label="Réglages verrouillés">
+      <h3>Réglages</h3>
+      <div class="set"><div class="k">Verrouillés pendant la conversion</div></div>
+      <div class="set"><div class="k">Piste d’origine</div><div class="v"><span>Dupliquer la piste</span></div></div>
+      <div class="set"><div class="k">Nom des pistes converties</div><div class="v"><span class="mono">{piste} [{de}→{vers}]</span></div></div>
+      <div class="set"><div class="k">Où écrire les copies</div><div class="v"><span>À côté des originaux</span></div></div>
+    </aside>
+  </div>
+  <div class="foot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/></svg>Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble] dans leur nom.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1100,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
