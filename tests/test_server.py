@@ -352,3 +352,11 @@ def test_replacement_by_another_plugin_gives_default_settings_group(app, tmp_pat
     assert [p.name for p in (tmp_path / "out").rglob("*.als")] == ["Test [ReAble].als"]
     state = call(app, "POST", "/api/replacement", {"plugin": "Massive X", "target": ""})[1]
     assert state["options"]["mapping"] == {}
+
+
+def test_replacement_chosen_for_a_family_applies_to_every_version_of_it():
+    from reable.batch import mapped_target
+    assert mapped_target("Play", {"play": "Opus"}) == "Opus"
+    assert mapped_target("Sausage Fattener", {"Sausage Fattener": "Saturn"}) == "Saturn"
+    assert mapped_target("FabFilter Pro-Q 3", {"FabFilter Pro-Q": "Pro-Q 4"}) == "Pro-Q 4"
+    assert mapped_target("Kontakt 5", {"Play": "Opus"}) is None

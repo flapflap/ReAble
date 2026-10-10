@@ -461,6 +461,7 @@
     try {
       S.server = await api("/api/replacement", { plugin: r.plugin, target });
       S.report = await api("/api/missing-report");
+      if (S.view === "plugins") S.plugins = await api("/api/plugins");
       toast(target ? `${r.plugin} sera remplacé par ${target}.` : "Remplacement retiré.");
     } catch (e) { toast(e.message); }
     S.repl = null; render();
@@ -559,15 +560,19 @@
   function viewPlugins() {
     const rows = (S.plugins || []).map((d) => {
       const [tone, label] = STATUS_LABEL[d.status];
-      const act = d.status === "experimental" ? btn("Tester ce plugin", () => { S.ptest = { def: d, created: null, busy: false, error: null, note: "" }; S.view = "plugintest"; render(); }, "btn btn-sm") : null;
+      const mapped = ((S.server && S.server.options && S.server.options.mapping) || {})[d.name];
+      const replRow = { plugin: d.name, vendor: d.vendor, format: "", verdict: "", count: 0, projects: [] };
+      const act = h("div", { class: "acol" },
+        d.status === "experimental" ? btn("Tester ce plugin", () => { S.ptest = { def: d, created: null, busy: false, error: null, note: "" }; S.view = "plugintest"; render(); }, "btn btn-sm") : null,
+        d.status !== "validated" ? btn(mapped ? "Remplaçant : " + mapped + " · modifier" : "Choisir un remplaçant…", () => openReplacement(replRow), "btn btn-sm") : null);
       return h("tr", {}, h("td", {}, h("strong", {}, d.name), h("span", { class: "sub" }, d.vendor || "")), h("td", {}, stateBadge(tone, label)),
-        h("td", {}, d.adapter ? (CAPABILITY[d.adapter] || "Prise en charge partielle") : "Pas encore convertible"), h("td", {}, ORIGIN_LABEL[d.source] || d.source), h("td", {}, act));
+        h("td", {}, d.adapter ? (CAPABILITY[d.adapter] || "Prise en charge partielle") : "Pas encore convertible"), h("td", {}, ORIGIN_LABEL[d.source] || d.source), h("td", { class: "acts" }, act));
     });
     const validated = (S.plugins || []).filter((d) => d.status === "validated").length;
     return frame("Bibliothèque de plugins", [btn("Retour", leaveLibrary)],
       h("div", { class: "valid" },
         h("div", {}, h("h2", {}, "Plugins connus de ReAble"), h("p", { class: "lead" }, `${plural(validated, "plugin validé", "plugins validés")} sur ${(S.plugins || []).length}. Un plugin « à tester » reste bloqué tant que vous n’avez pas vérifié le résultat dans Live.`)),
-        h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:190px" }, "Plugin"), h("th", { style: "width:170px" }, "Statut"), h("th", {}, "Ce que ReAble sait faire"), h("th", { style: "width:190px" }, "Origine"), h("th", { style: "width:130px" }))), h("tbody", {}, rows))),
+        h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:190px" }, "Plugin"), h("th", { style: "width:170px" }, "Statut"), h("th", {}, "Ce que ReAble sait faire"), h("th", { style: "width:190px" }, "Origine"), h("th", { style: "width:210px" }))), h("tbody", {}, rows))),
       null);
   }
   async function createTestCopy() {

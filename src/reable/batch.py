@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import alsfile, trace
 from .adapters import state_note
-from .registry import allowed_families, family_of
+from .registry import allowed_families, definition_of, family_of
 from .inventory import Inventory
 from .jobs import CancelToken, OnEvent, Reporter
 from .model import Plugin, SetReport
@@ -124,11 +124,27 @@ def _natural(name: str) -> tuple:
     return tuple(int(t) if t.isdigit() else t for t in re.split(r"(\d+)", name))
 
 
+def mapped_target(name: str, mapping: dict) -> str | None:
+    """Remplaçant choisi par l'utilisateur pour ce plugin : par nom exact (sans tenir compte des majuscules),
+    ou pour toute la famille quand la clé est le nom d'une définition (« Play » vaut pour toutes les versions)."""
+    low = name.lower()
+    for k, v in mapping.items():
+        if k.lower() == low:
+            return str(v)
+    d = definition_of(name)
+    if d is not None:
+        for k, v in mapping.items():
+            if k.lower() in (d.id.lower(), d.display_name().lower()):
+                return str(v)
+    return None
+
+
 def pick_target(p: Plugin, inv: Inventory, opts: ConvertOptions, templates: dict | None = None) -> str | None:
     """Nom du plugin VST3 cible : le même nom s'il est installé, sinon la version la plus récente de la
     famille. Si `templates` est donné, on ne garde que les cibles pour lesquelles un gabarit existe."""
-    if p.name in opts.mapping:
-        return str(opts.mapping[p.name]).lower()
+    chosen = mapped_target(p.name, opts.mapping)
+    if chosen:
+        return chosen.lower()
     fam = family_of(p.name)
     if fam not in opts.families:
         return None

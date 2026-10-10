@@ -351,13 +351,23 @@ class AppLogic:
 
     def replacement_candidates(self) -> list[dict]:
         """Plugins VST3 que l'utilisateur peut choisir comme remplaçants : ceux dont ReAble a un gabarit
-        (projet Live 12 contenant le plugin en VST3), seuls utilisables tout de suite."""
-        if self.analysis is None:
-            return []
+        (projet Live 12 contenant le plugin en VST3), seuls utilisables tout de suite. Sans analyse en cours,
+        on regarde la bibliothèque de gabarits que ReAble garde d'une analyse à l'autre."""
+        templates = self.analysis.templates if self.analysis is not None else self._library_templates()
         out = {}
-        for key, tpl in (self.analysis.templates or {}).items():
+        for key, tpl in (templates or {}).items():
             out[key] = {"name": tpl[2] if len(tpl) > 2 and tpl[2] else key, "key": key}
         return sorted(out.values(), key=lambda c: c["name"].lower())
+
+    _lib_cache: tuple = (None, {})
+
+    def _library_templates(self) -> dict:
+        from .. import templates as tpl_lib
+        files = tpl_lib.library_files()
+        sig = tuple((str(f), f.stat().st_mtime) for f in files if f.exists())
+        if AppLogic._lib_cache[0] != sig:
+            AppLogic._lib_cache = (sig, batch.build_template_index(files))
+        return AppLogic._lib_cache[1]
 
     def set_replacement(self, plugin: str, target: str) -> dict:
         """Remplace (ou retire le remplacement) d'un plugin par un autre, pour toutes les analyses suivantes."""
