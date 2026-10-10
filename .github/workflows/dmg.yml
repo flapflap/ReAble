@@ -69,5 +69,5 @@ jobs:
             --title "ReAble — dernière version de main ($VERSION)" \
             --notes "Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon).
 
-          **Application non signée par un développeur Apple.** Au premier lancement : clic droit sur ReAble > Ouvrir, ou dans le Terminal :
+          **Application non signée par un développeur Apple.** macOS affiche « ReAble.app non ouvert » : clique sur « Terminé » (pas sur « Placer dans la corbeille »), puis Réglages Système > Confidentialité et sécurité > « Ouvrir quand même ». Ou dans le Terminal :
           \`xattr -dr com.apple.quarantine /Applications/ReAble.app\`"
