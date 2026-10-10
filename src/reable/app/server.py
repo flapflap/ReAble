@@ -168,6 +168,8 @@ class App:
                     return self._json(200, L.set_beta(bool(body.get("enabled"))))
                 if path == "/api/beta/export":
                     return self._json(200, {"path": L.export_beta()})
+                if path == "/api/dropped-path":
+                    return self._json(200, L.dropped_path(str(body.get("name", ""))))
                 if path == "/api/open-url":
                     return self._json(200, {"ok": L.open_url(str(body.get("url", "")))})
                 if path == "/api/reveal":

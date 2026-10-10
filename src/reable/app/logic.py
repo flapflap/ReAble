@@ -62,6 +62,18 @@ def summarize(groups: list[dict]) -> dict:
     }
 
 
+def dropped_folder(path: str | None) -> dict:
+    """Interprète un élément déposé sur la fenêtre : un dossier, ou un projet .als (on prend son dossier)."""
+    if not path:
+        return {"error": "Le chemin du dossier déposé n'a pas pu être lu. Utilisez « Choisir… »."}
+    p = Path(path)
+    if p.is_dir():
+        return {"path": str(p)}
+    if p.suffix.lower() == ".als" and p.parent.is_dir():
+        return {"path": str(p.parent)}
+    return {"error": "Déposez un dossier de projets (ou un projet Live .als), pas un autre type de fichier."}
+
+
 class AppLogic:
     def __init__(self) -> None:
         self.jobs = JobManager()
@@ -70,6 +82,21 @@ class AppLogic:
         self.opts = self.load_options()
         self.last_written: list[str] = []
         self.ui_events: list[dict] = []          # messages de la fenêtre native vers la page (menu, dépôt) : la page les relève
+
+    @staticmethod
+    def dropped_path(name: str) -> dict:
+        """Chemin réel de l'élément que la page vient de recevoir (elle ne connaît que son nom).
+        La fenêtre native (pywebview, macOS) note les chemins déposés ; on retrouve celui qui porte ce nom."""
+        try:
+            from urllib.parse import unquote
+            from webview.dom import _dnd_state
+        except ImportError:
+            return {"error": "Le glisser-déposer n'est disponible que dans la fenêtre ReAble. Utilisez « Choisir… »."}
+        for item in list(_dnd_state["paths"]):
+            if unquote(item[0]) == name:
+                _dnd_state["paths"].remove(item)
+                return dropped_folder(unquote(item[1]))
+        return dropped_folder(None)
 
     # ---- messages de la fenêtre native
     def push_ui(self, event: dict) -> None:

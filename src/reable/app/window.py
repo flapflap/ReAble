@@ -5,6 +5,7 @@ import socket
 import time
 from pathlib import Path
 
+from .logic import dropped_folder  # noqa: F401  (réexporté : utilisé par les tests)
 from .server import App
 
 STOP_WAIT = 5.0     # secondes laissées à une tâche pour s'arrêter proprement à la fermeture
@@ -33,17 +34,6 @@ class NativeApi:
         r = self.window.create_file_dialog(webview.FOLDER_DIALOG, directory=str(Path.home() / "Music"))
         return str(r[0]) if r else None
 
-    def dropped_path(self, name: str) -> dict:
-        """Chemin réel de l'élément que la page vient de recevoir (la page ne connaît que son nom).
-        pywebview note les chemins déposés (macOS) ; on retrouve celui qui porte ce nom."""
-        from urllib.parse import unquote
-        from webview.dom import _dnd_state
-        for item in list(_dnd_state["paths"]):
-            if unquote(item[0]) == name:
-                _dnd_state["paths"].remove(item)
-                return dropped_folder(unquote(item[1]))
-        return dropped_folder(None)
-
     def open_url(self, url: str) -> bool:
         from .logic import AppLogic
         return AppLogic.open_url(url)
@@ -51,18 +41,6 @@ class NativeApi:
     def reveal(self, path: str) -> bool:
         from .logic import AppLogic
         return AppLogic.reveal(path)
-
-
-def dropped_folder(path: str | None) -> dict:
-    """Interprète un élément déposé sur la fenêtre : un dossier, ou un projet .als (on prend son dossier)."""
-    if not path:
-        return {"error": "Le chemin du dossier déposé n'a pas pu être lu. Utilisez « Choisir… »."}
-    p = Path(path)
-    if p.is_dir():
-        return {"path": str(p)}
-    if p.suffix.lower() == ".als" and p.parent.is_dir():
-        return {"path": str(p.parent)}
-    return {"error": "Déposez un dossier de projets (ou un projet Live .als), pas un autre type de fichier."}
 
 
 _about_handler = None      # référence conservée : macOS ne garde pas le gestionnaire en vie

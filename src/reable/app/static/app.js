@@ -197,10 +197,8 @@
     el.addEventListener("drop", async (e) => {
       e.preventDefault(); el.classList.remove("over");
       const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      const native = window.pywebview && window.pywebview.api && window.pywebview.api.dropped_path;
-      if (!native) { toast("Le glisser-déposer fonctionne dans la fenêtre ReAble. Ici, utilisez « Choisir… »."); return; }
       if (!f) { toast("Déposez un dossier de projets."); return; }
-      try { window.reableDropped(await window.pywebview.api.dropped_path(f.name)); } catch (err) { toast("Le glisser-déposer a échoué : utilisez « Choisir… »."); }
+      try { window.reableDropped(await api("/api/dropped-path", { name: f.name })); } catch (err) { toast("Le glisser-déposer a échoué : utilisez « Choisir… »."); }
     });
     return el;
   }

@@ -53,10 +53,10 @@ def test_dropped_folder(tmp_path):
 
 def test_dropped_path_finds_the_real_path_by_name(tmp_path):
     from webview.dom import _dnd_state
-    from reable.app.window import NativeApi
+    from reable.app.logic import AppLogic
     d = tmp_path / "Mes Projets"
     d.mkdir()
     _dnd_state["paths"][:] = [("Mes%20Projets", str(d) + "/")]
-    r = NativeApi().dropped_path("Mes Projets")
+    r = AppLogic.dropped_path("Mes Projets")
     assert r["path"].rstrip("/") == str(d)
-    assert "error" in NativeApi().dropped_path("Mes Projets")        # chemin consommé : un seul usage
+    assert "error" in AppLogic.dropped_path("Mes Projets")        # chemin consommé : un seul usage
