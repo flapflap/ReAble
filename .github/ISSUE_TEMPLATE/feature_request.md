@@ -1,9 +1,9 @@
 ---
-name: Proposer une idée
-about: Une fonction qui manque, un plugin à prendre en charge
+name: Proposer une idée / Suggest an idea
+about: Une fonction qui manque / A missing feature
 labels: enhancement
 ---
 
-**L'idée**
+**L'idée / The idea**
 
-**Pourquoi c'est utile**
+**Pourquoi c'est utile / Why it is useful**

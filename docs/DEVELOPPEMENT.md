@@ -24,3 +24,9 @@ python -m pytest                 # tests
 - Définitions de plugins (dépôt séparé) : [ReAble-library](https://github.com/flapflap/ReAble-library)
 - Le serveur local de l'application n'écoute que sur 127.0.0.1, avec un jeton par lancement.
 - Ancien nom : PlugRescue. Les copies `[PlugRescue]` restent reconnues et restaurables ; le dossier de réglages est migré automatiquement.
+
+## Publier une version
+1. Mettre à jour `__version__` dans `src/reable/__init__.py` (ex. `0.1.0-beta.2`) et pousser sur `main`.
+2. Créer l'étiquette correspondante : `git tag v0.1.0-beta.2 && git push origin v0.1.0-beta.2`.
+3. Le workflow `dmg.yml` teste, construit, signe, notarise et publie la version numérotée ; il refuse si l'étiquette ne correspond pas à `__version__`.
+Chaque poussée sur `main` publie aussi un build de développement (`nightly`, préversion) : ce n'est pas la version à télécharger.

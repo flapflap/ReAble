@@ -12,8 +12,8 @@ Un projet Live qui s'ouvre avec des plugins en rouge (Massive en AU, Kontakt 5, 
 
 ⚠️ C'est une **bêta** : vérifiez chaque conversion dans Live 12 avant de vous y fier. Pour l'instant, seuls les plugins Native Instruments (Kontakt, Massive, Massive X, FM8, Battery, Absynth) et Ozone sont validés ; vos retours aident à en valider d'autres.
 
-Téléchargement : https://github.com/flapflap/ReAble/releases/tag/latest
-Retours, bugs, idées, plugins à ajouter : https://github.com/flapflap/ReAble/issues/new/choose (ou menu ReAble > À propos de ReAble dans l'application)
+Téléchargement : https://github.com/flapflap/ReAble/releases/latest
+Retours, bugs, idées, plugins à ajouter : https://github.com/flapflap/ReAble/issues/new/choose (ou menu ReAble > À propos de ReAble dans l'application ; l'interface existe en français et en anglais)
 
 ## English — Discord / forum
 
@@ -25,7 +25,7 @@ Does a Live project open with red, missing plugins (Massive as AU, Kontakt 5, Oz
 - Drag and drop a folder: Choose → Review → Convert, and you can stop at any time
 - For an unsupported plugin: a missing-plugins report, a replacement plugin of your choice, and a one-click support request
 
-⚠️ This is a **beta**: check every conversion in Live 12 before relying on it. For now only Native Instruments plugins (Kontakt, Massive, Massive X, FM8, Battery, Absynth) and Ozone are validated; your feedback helps validate more. The app interface is in French for now.
+⚠️ This is a **beta**: check every conversion in Live 12 before relying on it. For now only Native Instruments plugins (Kontakt, Massive, Massive X, FM8, Battery, Absynth) and Ozone are validated; your feedback helps validate more. The app comes in English and French.
 
-Download: https://github.com/flapflap/ReAble/releases/tag/latest
-Feedback, bugs, ideas, plugins to add: https://github.com/flapflap/ReAble/issues/new/choose (or menu ReAble > À propos de ReAble in the app)
+Download: https://github.com/flapflap/ReAble/releases/latest
+Feedback, bugs, ideas, plugins to add: https://github.com/flapflap/ReAble/issues/new/choose (or the ReAble > About ReAble menu in the app)

@@ -1,13 +1,13 @@
 ---
-name: Signaler un problème
-about: Un projet mal converti, une erreur, un écran confus
+name: Signaler un problème / Report a problem
+about: Un projet mal converti, une erreur, un écran confus / A badly converted project, an error, a confusing screen
 labels: bug
 ---
 
-**Ce que je faisais**
+**Ce que je faisais / What I was doing**
 
-**Ce que j'attendais**
+**Ce que j'attendais / What I expected**
 
-**Ce qui s'est passé** (joindre une capture d'écran si possible)
+**Ce qui s'est passé / What happened** (capture d'écran bienvenue / screenshot welcome)
 
-**Plugin et projet concernés** (nom du plugin, version de Live ; pas besoin d'envoyer le projet)
+**Plugin et version de Live / Plugin and Live version** (inutile d'envoyer le projet / no need to send the project)
