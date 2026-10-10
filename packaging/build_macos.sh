@@ -23,6 +23,7 @@ fi
 # 2. L'application
 "$PY" -m PyInstaller --noconfirm --clean --windowed --name ReAble \
   --osx-bundle-identifier io.github.flapflap.reable \
+  --icon "$ROOT/packaging/ReAble.icns" \
   --paths "$ROOT/src" \
   --add-data "$ROOT/src/reable/app/static:reable/app/static" \
   --add-data "$ROOT/packaging/_snapshot:reable/definitions_snapshot" \
