@@ -104,6 +104,6 @@ jobs:
           gh release create latest dist/ReAble.dmg "dist/ReAble-$VERSION.dmg" \
             --prerelease --target "$GITHUB_SHA" \
             --title "ReAble — dernière version de main ($VERSION)" \
-            --notes "Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon).
+            --notes "**Version bêta 0.1.** Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon). ReAble n'écrit que des copies de vos projets, mais vérifiez chaque conversion dans Live 12. Un problème, une idée ? Ouvrez une demande depuis « À propos de ReAble » dans l'application.
 
           ${NOTE}"

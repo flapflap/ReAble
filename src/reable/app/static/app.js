@@ -253,7 +253,8 @@
       h("div", { class: "dlg about", role: "dialog", "aria-modal": "true", "aria-labelledby": "about-title" },
         h("img", { class: "logo", src: "logo.png", alt: "", width: 56, height: 56 }),
         h("h2", { id: "about-title" }, "ReAble"),
-        h("p", {}, `Version ${sv.version || "?"} · macOS ${sv.system || "?"}`),
+        h("p", {}, `Version ${sv.version || "?"} bêta · macOS ${sv.system || "?"}`),
+        h("p", { class: "note" }, "Version bêta : vérifiez chaque conversion dans Live avant de vous y fier."),
         h("p", {}, "Retrouve et répare les plugins manquants de tes projets Ableton Live. Tes projets d’origine ne sont jamais modifiés."),
         h("div", { class: "col" },
           btn("Voir le projet sur GitHub", () => openExternal(REPO), "btn"),
@@ -295,7 +296,7 @@
       nav("Plugins", "box", S.view === "plugins" || S.view === "plugintest", !busy(), openPlugins, S.plugins ? String(S.plugins.length) : ""),
       nav("Réglages", "gear", S.view === "settings", !busy(), openSettings),
       h("div", { class: "safe" }, icon("shield", "", 16), h("span", {}, "Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].")),
-      sv && sv.version ? h("button", { type: "button", class: "ver", onclick: () => { S.about = true; render(); } }, `ReAble · version ${sv.version}`) : null);
+      sv && sv.version ? h("button", { type: "button", class: "ver", onclick: () => { S.about = true; render(); } }, `ReAble · version ${sv.version} bêta`) : null);
   }
   const LIB_VIEWS = ["plugins", "plugintest", "settings"];
   function rememberView() { if (!LIB_VIEWS.includes(S.view)) S.prevView = S.view; }

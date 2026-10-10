@@ -2,7 +2,7 @@
 
 L'assistant des projets Ableton Live : il repère les plugins qui manquent, remplace ceux qui ont disparu par leur version VST3 ou plus récente, et garde autant que possible les réglages, les presets et les automations.
 
-> Statut : en développement actif, usage personnel de l'auteur. Les conversions validées dans Live 12 sont listées dans le dépôt **[ReAble-library](https://github.com/flapflap/ReAble-library)** ; tout le reste est bloqué par défaut.
+> ⚠️ **Version bêta (0.1).** ReAble est jeune : il n'écrit que des **copies** (vos projets d'origine ne sont jamais modifiés), mais chaque conversion doit être **vérifiée dans Live 12** avant de vous y fier. Seuls les plugins déjà validés dans Live sont convertis ; tout le reste est bloqué par défaut. Mac Apple Silicon uniquement pour l'instant. Un problème, une idée, un plugin à prendre en charge ? Ouvrez une [demande](https://github.com/flapflap/ReAble/issues/new/choose) (le bouton « À propos » de l'application la pré-remplit). Les conversions validées sont listées dans **[ReAble-library](https://github.com/flapflap/ReAble-library)**.
 
 ## Ce que ça fait
 - **Analyse** un dossier de projets (`.als`) et dit, pour chaque plugin tiers, s'il est installé, manquant, ou disponible dans un autre format ou une version plus récente.
