@@ -177,3 +177,5 @@ html,body{margin:0;height:100%;background:var(--pr-bg)}
 .pr .dlg.about .logo{border-radius:13px}
 .pr .dlg.about .col{display:flex;flex-direction:column;gap:6px;width:100%}
 .pr .dlg.about .row{justify-content:center}
+.pr td.acts{white-space:nowrap}
+.pr td.acts .btn+.btn{margin-left:6px}

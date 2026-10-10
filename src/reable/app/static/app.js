@@ -240,6 +240,11 @@
     const body = bug ? `**Ce que je faisais**\n\n**Ce que j’attendais**\n\n**Ce qui s’est passé**\n${ctx}` : `**L’idée**\n\n**Pourquoi c’est utile**\n${ctx}`;
     return `${REPO}/issues/new?template=${bug ? "bug_report.md" : "feature_request.md"}&title=${encodeURIComponent(bug ? "[Bug] " : "[Idée] ")}&body=${encodeURIComponent(body)}`;
   }
+  function pluginRequestUrl(r) {
+    const sv = S.server || {};
+    const body = `**Plugin** : ${r.plugin}\n**Éditeur** : ${r.vendor || "?"}\n**Format dans mon projet** : ${r.format}\n**Situation indiquée par ReAble** : ${r.verdict}\n**Projets concernés** : ${r.count}\n\n**Ce que je voudrais**\n\n---\nReAble ${sv.version || "?"} · macOS ${sv.system || "?"}`;
+    return `${REPO}/issues/new?template=plugin_request.md&title=${encodeURIComponent("[Plugin] " + r.plugin)}&body=${encodeURIComponent(body)}`;
+  }
   function aboutDialog() {
     const sv = S.server || {};
     const close = () => { S.about = false; render(); };
@@ -425,10 +430,11 @@
       const key = "rep|" + r.plugin + "|" + r.format, open = S.expanded.has(key);
       const main = h("tr", {}, h("td", {}, h("strong", {}, r.plugin), h("span", { class: "sub" }, `${r.format}${r.vendor ? " · " + r.vendor : ""}`)),
         h("td", {}, stateBadge(tone, label)), h("td", {}, r.verdict, r.hint ? h("span", { class: "sub" }, r.hint) : null),
-        h("td", { class: "n" }, r.count), h("td", {}, btn(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(key) : S.expanded.add(key); render(); }, "btn btn-sm")));
+        h("td", { class: "n" }, r.count), h("td", { class: "acts" }, btn(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(key) : S.expanded.add(key); render(); }, "btn btn-sm"),
+          r.kind === "unknown" || r.kind === "blocked" ? btn("Demander la prise en charge", () => openExternal(pluginRequestUrl(r)), "btn btn-sm btn-primary") : null));
       return open ? [main, h("tr", { class: "sub" }, h("td", { colspan: 5 }, h("div", { class: "names" }, r.projects.map((n) => h("span", {}, n)))))] : [main];
     });
-    return h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:220px" }, "Plugin"), h("th", { style: "width:170px" }, "Situation"), h("th", {}, "Ce qu’il faut faire"), h("th", { style: "text-align:right;width:70px" }, "Projets"), h("th", { style: "width:150px" }))), h("tbody", {}, rows));
+    return h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:220px" }, "Plugin"), h("th", { style: "width:170px" }, "Situation"), h("th", { style: "min-width:220px" }, "Ce qu’il faut faire"), h("th", { style: "text-align:right;width:70px" }, "Projets"), h("th", { style: "width:290px" }))), h("tbody", {}, rows));
   }
   async function openReport() {
     try { S.report = await api("/api/missing-report"); } catch (e) { toast(e.message); return; }
