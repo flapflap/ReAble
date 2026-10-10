@@ -95,11 +95,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if [ -n "$SIGN_IDENTITY" ]; then
+            NOTE="Signée (Developer ID) et notarisée par Apple : s'ouvre sans avertissement."
+          else
+            NOTE="Non signée par un développeur Apple : si macOS affiche « ReAble.app non ouvert », clique sur « Terminé », puis Réglages Système > Confidentialité et sécurité > « Ouvrir quand même » (ou : xattr -dr com.apple.quarantine /Applications/ReAble.app)."
+          fi
           gh release delete latest --cleanup-tag --yes || true
           gh release create latest dist/ReAble.dmg "dist/ReAble-$VERSION.dmg" \
             --prerelease --target "$GITHUB_SHA" \
             --title "ReAble — dernière version de main ($VERSION)" \
             --notes "Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon).
 
-          Si macOS affiche « ReAble.app non ouvert » (version non signée par un développeur Apple) : clique sur « Terminé » (pas sur « Placer dans la corbeille »), puis Réglages Système > Confidentialité et sécurité > « Ouvrir quand même ». Ou dans le Terminal :
-          \`xattr -dr com.apple.quarantine /Applications/ReAble.app\`"
+          ${NOTE}"
