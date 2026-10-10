@@ -39,7 +39,8 @@ fi
 
 APP="$OUT/ReAble.app"
 # Version lisible dans Finder (Informations)
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION#v}" "$APP/Contents/Info.plist" 2>/dev/null || true
+SHORT="$(sed -n 's/^__version__ = "\([0-9]*\.[0-9]*\).*/\1/p' src/reable/__init__.py)"   # « 0.1 » : le numéro affiché à l'utilisateur
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${SHORT:-${VERSION#v}}" "$APP/Contents/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION#v}" "$APP/Contents/Info.plist" 2>/dev/null || true
 # Signature « ad hoc » (obligatoire pour qu'un binaire arm64 se lance ; ce n'est PAS une signature de développeur)
 xattr -cr "$APP"          # retire les attributs étendus (Finder, provenance) : codesign les refuse
@@ -59,12 +60,8 @@ else
 fi
 
 # 3. Le DMG : l'application + un raccourci vers Applications
-STAGE="$(mktemp -d)"
-cp -R "$APP" "$STAGE/"
-ln -s /Applications "$STAGE/Applications"
 DMG="$OUT/ReAble-${VERSION}.dmg"
-hdiutil create -volname "ReAble" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov "$DMG" >/dev/null
-rm -rf "$STAGE"
+PYTHON="$PY" packaging/make_dmg.sh "$APP" "$DMG"
 if [ "$SIGNED" = 1 ]; then
   codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
   NOTARY_ARGS=()

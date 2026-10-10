@@ -52,3 +52,7 @@ Branche proposée : `fix/retours-ux-1`. Tests : `pytest` + parcours dans le navi
 
 ## Avancement
 - ✅ Lot A (branche `fix/retours-ux-1`) : A1 dépôt natif côté Python, A2 contraste de l'étape active, A3 + B1 + B2 (logo, bouton Analyser sur la ligne du champ). Tests : 109 verts ; écran « Choisir » vérifié dans le navigateur ; le dépôt est à valider par Benoit dans la fenêtre native.
+- ✅ Lot B : écran « Valider » refait d'après la maquette Claude Design (liste, options, actions en pied de page), boutons à la place des liens, « Comprendre » → « Valider ».
+- ✅ Lot C : noms de plugins lisibles (`registry.pretty_name`), colonne « Origine » et libellés clairs, écran « Tester ce plugin » (copie de test rangée dans le dossier de ReAble, question « identique ? » → `record_validation`, local), onglet Réglages (programme bêta + export anonyme, gabarits, bibliothèque, à propos).
+- ✅ Lot D : numéro de version « 0.1 » (barre latérale, Réglages, menu « À propos de ReAble », Info.plist) ; DMG avec fond « Glissez ReAble dans Applications » (`packaging/make_dmg.sh`, repli sur un DMG simple si le Finder échoue). Icône (D3) : après la bêta.
+- Tests : 113 verts. À vérifier par Benoit : glisser-déposer natif, menu « À propos », aspect du DMG.
