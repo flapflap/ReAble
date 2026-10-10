@@ -146,3 +146,12 @@ html,body{margin:0;height:100%;background:var(--pr-bg)}
 
 .pr .titlebar .logo{width:28px;height:28px;border-radius:7px;flex:none;-webkit-app-region:drag}
 .pr .pathrow .btn-primary{flex:none}
+
+.pr .btn-sm{height:24px;padding:0 10px;font-size:12px;box-shadow:none}
+.pr .valid{padding:16px 24px;display:flex;flex-direction:column;gap:20px}
+.pr .valid h2{font-size:15px;font-weight:600}
+.pr .valid .lead{margin-top:2px;color:var(--pr-text-muted)}
+.pr .valid thead th{position:static}
+.pr .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;padding:14px 16px;background:var(--pr-surface-2);border:.5px solid var(--pr-border);border-radius:var(--pr-radius-l)}
+.pr .opts .input{max-width:none}
+.pr .status.foot{height:52px;background:var(--pr-chrome);color:var(--pr-text)}
