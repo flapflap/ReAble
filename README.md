@@ -1,5 +1,7 @@
 # ReAble
 
+**Français** · [English](README.en.md)
+
 **Vos projets Ableton Live ne s'ouvrent plus à cause de plugins manquants ? ReAble les retrouve et les remplace.**
 
 Un plugin a été désinstallé, n'existe plus qu'en VST3, ou a changé de version (Massive en AU, Kontakt 5, Ozone 9…) : Live l'affiche en rouge et vous perdez le son. ReAble analyse vos projets, repère ces plugins et crée une **copie** du projet avec le plugin équivalent, en gardant autant que possible le preset, les réglages et les automations.
