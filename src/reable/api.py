@@ -65,7 +65,7 @@ def analyze(target: str | Path, plugins_root: list[str] | None = None, include_p
     templates = build_template_index(files + extra + tpl_lib.library_files())
     if remember_templates:
         try:
-            tpl_lib.remember(files)                  # alimente la bibliothèque pour les analyses suivantes
+            tpl_lib.remember(files + extra)          # alimente la bibliothèque pour les analyses suivantes (dossiers ajoutés compris)
         except OSError:
             pass
     rep.end(f"{len(reports)} projet(s) lu(s)")

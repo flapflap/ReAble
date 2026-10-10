@@ -1,0 +1,73 @@
+name: dmg
+# À chaque poussée sur main : tests, puis construction de ReAble.app et du DMG, publiés dans la version « latest ».
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: dmg-main
+  cancel-in-progress: true          # une poussée plus récente remplace une construction encore en cours
+
+permissions:
+  contents: write                   # nécessaire pour mettre à jour la version « latest »
+
+jobs:
+  dmg:
+    runs-on: macos-14               # Apple Silicon (arm64)
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+
+      - name: Dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,app]" pyinstaller
+
+      - name: Tests (pas de DMG si un test échoue)
+        run: python -m pytest -q
+
+      # Définitions livrées dans l'application : instantané de ReAble-library si le dépôt est lisible
+      # (dépôt public, ou secret LIBRARY_TOKEN), sinon copie de test du dépôt.
+      - name: Définitions de plugins (ReAble-library)
+        id: library
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          repository: flapflap/ReAble-library
+          token: ${{ secrets.LIBRARY_TOKEN || github.token }}
+          path: library
+
+      - name: Construire ReAble.app et le DMG
+        env:
+          PYTHON: python
+          LIBRARY_DIR: ${{ github.workspace }}/library
+        run: |
+          VERSION="$(date -u +%Y.%m.%d)-${GITHUB_SHA::7}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          packaging/build_macos.sh "$VERSION"
+          cp "dist/ReAble-$VERSION.dmg" dist/ReAble.dmg          # nom stable pour le lien de téléchargement
+
+      - name: Conserver le DMG (artefact de l'exécution)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReAble-dmg
+          path: dist/ReAble-*.dmg
+          retention-days: 30
+
+      - name: Publier dans la version « latest »
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest dist/ReAble.dmg "dist/ReAble-$VERSION.dmg" \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "ReAble — dernière version de main ($VERSION)" \
+            --notes "Construit automatiquement à chaque poussée sur main (commit ${GITHUB_SHA::7}, Apple Silicon).
+
+          **Application non signée par un développeur Apple.** Au premier lancement : clic droit sur ReAble > Ouvrir, ou dans le Terminal :
+          \`xattr -dr com.apple.quarantine /Applications/ReAble.app\`"

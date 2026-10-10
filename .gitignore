@@ -9,3 +9,6 @@ reable-report.*
 Test Plugins AU VST3 Project/
 tests-live/
 src/reable/definitions_snapshot/
+dist/
+build/
+packaging/_snapshot/

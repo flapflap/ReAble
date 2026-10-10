@@ -12,7 +12,7 @@ from .. import api, registry, trace
 from ..batch import ConvertOptions, PlanItem
 from ..jobs import JobBusy, JobManager
 
-KIND_ORDER = ["validated", "default", "old", "unsupported", "done"]
+KIND_ORDER = ["validated", "default", "template", "old", "unsupported", "done"]
 
 
 def group_items(items: list[PlanItem]) -> list[dict]:
@@ -27,16 +27,21 @@ def group_items(items: list[PlanItem]) -> list[dict]:
             key, kind, title = ("done", "", "", ""), "done", "Déjà convertis"
         elif "trop ancien" in (it.reason or ""):
             key, kind, title = ("old", "", "", ""), "old", "Projets trop anciens"
+        elif (it.reason or "").startswith("aucun gabarit"):
+            key, kind, title = ("template", it.target_name, "", ""), "template", f"Gabarit manquant : {it.target_name}"
         else:
             key, kind, title = ("unsupported", "", "", ""), "unsupported", "Plugins sans équivalent"
         g = groups.setdefault(key, {"id": "|".join(key), "kind": kind, "title": title, "sets": set(), "instances": 0,
-                                    "plugins": set(), "selectable": kind in ("validated", "default")})
+                                    "plugins": set(), "targets": set(), "selectable": kind in ("validated", "default")})
+        if it.target_name:
+            g["targets"].add(it.target_name)
         g["sets"].add(it.set_path)
         g["instances"] += max(it.instances, 1)
         g["plugins"].add(it.plugin)
     out = []
     for g in groups.values():
-        out.append({**g, "sets": sorted(g["sets"]), "count": len(g["sets"]), "plugins": sorted(g["plugins"])})
+        out.append({**g, "sets": sorted(g["sets"]), "count": len(g["sets"]), "plugins": sorted(g["plugins"]),
+                    "targets": sorted(g["targets"])})
     out.sort(key=lambda g: (KIND_ORDER.index(g["kind"]), -g["count"], g["title"]))
     return out
 
@@ -48,6 +53,8 @@ def summarize(groups: list[dict]) -> dict:
         "to_convert": len({s for g in conv for s in g["sets"]}),
         "default_settings": len({s for g in by("default") for s in g["sets"]}),
         "too_old": len({s for g in by("old") for s in g["sets"]}),
+        "template_missing": len({s for g in by("template") for s in g["sets"]}),
+        "templates_needed": sorted({t for g in by("template") for t in g["targets"]}),
         "unsupported_plugins": len({p for g in by("unsupported") for p in g["plugins"]}),
         "already_done": len({s for g in by("done") for s in g["sets"]}),
     }
@@ -100,6 +107,7 @@ class AppLogic:
 
     # ---- tâches
     def analyze(self, path: str, template_dirs: list[str] | None = None):
+        template_dirs = [str(Path(d).expanduser()) for d in (template_dirs or []) if d]
         p = Path(path).expanduser()
         if not p.exists():
             raise FileNotFoundError(f"« {path} » n'est pas accessible")

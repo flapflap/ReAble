@@ -12,6 +12,9 @@ L'assistant des projets Ableton Live : il repère les plugins qui manquent, remp
 - **Annule** : met les copies à la corbeille, ou restaure les plugins d'origine depuis la note de traçabilité.
 
 ## Installation
+**Application Mac (Apple Silicon)** : télécharge `ReAble.dmg` dans la [dernière version](https://github.com/flapflap/ReAble/releases/tag/latest) (reconstruite à chaque poussée sur `main`), ouvre-le et glisse ReAble dans Applications. L'application n'est pas signée par un développeur Apple : au premier lancement, clic droit sur ReAble > Ouvrir (ou `xattr -dr com.apple.quarantine /Applications/ReAble.app`).
+
+**Depuis les sources** :
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,app]"      # « app » = fenêtre native (pywebview)

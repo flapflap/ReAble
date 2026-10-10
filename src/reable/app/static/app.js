@@ -89,6 +89,7 @@
     error: null,
     toast: null,
     plugins: null,
+    templateDirs: [],
     lastKind: null,
     summary: null,
   };
@@ -161,7 +162,7 @@
   async function startAnalyze() {
     S.error = null;
     try {
-      const r = await api("/api/analyze", { path: S.path });
+      const r = await api("/api/analyze", { path: S.path, template_dirs: S.templateDirs });
       S.view = "analyzing";
       startPolling(r.job, "analyze");
     } catch (e) { S.error = e.message; S.view = "error"; render(); }
@@ -207,6 +208,13 @@
     toast(`${plural(r.moved.length, "copie mise", "copies mises")} à la corbeille.`);
     S.view = "choose"; S.server = await api("/api/state");
     render();
+  }
+  async function addTemplateDir() {
+    const native = window.pywebview && window.pywebview.api && window.pywebview.api.choose_folder;
+    const path = native ? await window.pywebview.api.choose_folder() : (await api("/api/choose-folder", {})).path;
+    if (!path) return;
+    S.templateDirs = [...new Set([...S.templateDirs, path])];
+    S.path = S.server.folder; startAnalyze();
   }
   async function copyOldList() {
     const r = await api("/api/old-sets");
@@ -301,13 +309,14 @@
   function groupRow(g) {
     const sel = S.selected.has(g.id);
     const open = S.expanded.has(g.id);
-    const stateEl = { validated: stateBadge("ok", "Validé"), default: stateBadge("warn", "Réglages par défaut"), old: stateBadge("err", "Action requise"),
+    const stateEl = { validated: stateBadge("ok", "Validé"), default: stateBadge("warn", "Réglages par défaut"), old: stateBadge("err", "Action requise"), template: stateBadge("err", "Gabarit requis"),
       unsupported: stateBadge("neu", "Non pris en charge"), done: stateBadge("ok", "Déjà fait") }[g.kind];
     const detail = { validated: g.kind === "validated" && /Kontakt|Massive|FM8|Absynth|Battery/.test(g.title) ? "La piste est dupliquée : l’originale reste, en sourdine." : "Vos réglages seront repris.",
       default: "Le plugin cible ne lit pas les réglages de l’ancienne version : réglages par défaut, l’ancien preset est noté sur la piste.",
-      old: "À ouvrir et enregistrer dans Live 12, puis réanalyser.", unsupported: g.plugins.slice(0, 6).join(", ") + (g.plugins.length > 6 ? "…" : "") + " — ReAble ne sait pas encore les convertir.",
+      old: "À ouvrir et enregistrer dans Live 12, puis réanalyser.",
+      template: `Pour convertir ces projets, ReAble a besoin d’un projet Live 12 qui contient ${g.targets.join(", ")} en VST3 (un « gabarit »). Chargez-le une fois dans un projet, enregistrez-le, puis ajoutez ce dossier.`, unsupported: g.plugins.slice(0, 6).join(", ") + (g.plugins.length > 6 ? "…" : "") + " — ReAble ne sait pas encore les convertir.",
       done: "Les copies existent déjà ; elles ne seront pas refaites." }[g.kind];
-    const act = g.kind === "old" ? btnLink("Copier la liste", copyOldList) : btnLink(open ? "Masquer" : g.kind === "unsupported" ? "Voir lesquels" : "Voir les projets", () => { open ? S.expanded.delete(g.id) : S.expanded.add(g.id); render(); });
+    const act = g.kind === "template" ? btnLink("Ajouter un dossier de gabarits…", addTemplateDir) : g.kind === "old" ? btnLink("Copier la liste", copyOldList) : btnLink(open ? "Masquer" : g.kind === "unsupported" ? "Voir lesquels" : "Voir les projets", () => { open ? S.expanded.delete(g.id) : S.expanded.add(g.id); render(); });
     const cb = g.selectable ? h("input", { type: "checkbox", checked: sel, "aria-label": `Convertir ${g.title}`, onchange: (e) => { e.target.checked ? S.selected.add(g.id) : S.selected.delete(g.id); render(); } }) : null;
     const rows = [h("tr", {}, h("td", { class: "chk" }, cb), h("td", {}, stateEl),
       h("td", {}, h("strong", {}, g.title), h("span", { class: "sub" }, detail)), h("td", { class: "n" }, g.count), h("td", {}, act))];
@@ -340,7 +349,7 @@
     return frame(`${baseName(sv.folder)} · ${plural(sv.sets, "projet analysé", "projets analysés")}`,
       [btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); }), btn("Essai à blanc", () => startConvert(true), "btn", { disabled: !selCount }),
         btn(`Convertir ${plural(selCount, "projet", "projets")}`, () => startConvert(false), "btn btn-primary", { disabled: !selCount })],
-      [h("div", { class: "sumbar" }, sumItem("ok", sm.to_convert, "projets seront convertis"), sumItem("err", sm.too_old, "trop anciens (à ouvrir dans Live 12)"), sumItem("neu", sm.unsupported_plugins, "plugins sans équivalent")),
+      [h("div", { class: "sumbar" }, sumItem("ok", sm.to_convert, "projets seront convertis"), sumItem("err", sm.too_old + (sm.template_missing || 0), "à préparer (trop anciens ou gabarit manquant)"), sumItem("neu", sm.unsupported_plugins, "plugins sans équivalent")),
         h("table", {}, h("thead", {}, h("tr", {}, h("th"), h("th", { style: "width:170px" }, "État"), h("th", {}, "Conversion"), h("th", { style: "text-align:right" }, "Projets"), h("th", { style: "width:140px" }))),
           h("tbody", {}, groups.flatMap(groupRow)))],
       status(h("span", {}, h("b", {}, selCount), " projets sélectionnés"), "Rien n’est écrit tant que vous ne cliquez pas sur Convertir."), inspector(false));
@@ -352,6 +361,8 @@
     const reasons = [];
     if (done) reasons.push(`${plural(done, "projet a", "projets ont")} déjà ${done > 1 ? "leur" : "sa"} copie [ReAble] : rien n’est refait.`);
     if (old) reasons.push(`${plural(old, "projet est", "projets sont")} trop ancien${old > 1 ? "s" : ""} : ouvrez-${old > 1 ? "les" : "le"} dans Live 12, enregistrez-${old > 1 ? "les" : "le"}, puis réanalysez.`);
+    const tpl = sm.template_missing || 0;
+    if (tpl) reasons.push(`${plural(tpl, "projet attend", "projets attendent")} un gabarit : ajoutez un projet Live 12 qui contient ${(sm.templates_needed || []).join(", ")} en VST3.`);
     if (unsup) reasons.push(`${plural(unsup, "plugin n’a", "plugins n’ont")} pas d’équivalent connu : ReAble ne sait pas encore ${unsup > 1 ? "les" : "le"} convertir.`);
     if (!reasons.length) reasons.push("Aucun projet de ce dossier ne contient de plugin manquant que ReAble sait remplacer.");
     return frame(`${baseName(sv.folder)} · ${plural(sv.sets, "projet analysé", "projets analysés")}`, [btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); })],

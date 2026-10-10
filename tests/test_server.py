@@ -89,7 +89,8 @@ def test_group_items_and_summary():
     g = group_items(items)
     assert [x["kind"] for x in g] == ["validated", "default", "old", "unsupported", "done"]
     assert g[0]["count"] == 2 and g[0]["selectable"] and not g[2]["selectable"]
-    assert summarize(g) == {"to_convert": 3, "default_settings": 1, "too_old": 1, "unsupported_plugins": 1, "already_done": 1}
+    assert summarize(g) == {"to_convert": 3, "default_settings": 1, "too_old": 1, "template_missing": 0, "templates_needed": [],
+                            "unsupported_plugins": 1, "already_done": 1}
 
 
 @needs_set
@@ -174,3 +175,16 @@ def test_counts_are_per_project_not_per_plugin():
     c = _counts([it("/a", "converti"), it("/a", "converti", "n'est pas repris"), it("/b", "converti", "n'est pas repris"),
                  it("/c", "ignoré")])
     assert c == {"converted": 1, "default": 1, "skipped": 1, "errors": 0}      # 3 projets, pas 4 conversions
+
+
+def test_missing_template_is_its_own_group_not_unsupported():
+    def it(plugin, target, reason, status="bloqué", path="/a.als"):
+        return PlanItem(path, plugin, "VST2", target, 1, "", status, reason)
+    items = [it("Ozone 8", "Ozone 10", "aucun gabarit VST3 « Ozone 10 » dans les sets analysés", path="/1.als"),
+             it("Ozone 9", "Ozone 10", "aucun gabarit VST3 « Ozone 10 » dans les sets analysés", path="/2.als"),
+             it("FabFilter", "", "pas de plugin VST3 compatible installé", path="/3.als")]
+    g = group_items(items)
+    assert [x["kind"] for x in g] == ["template", "unsupported"]
+    assert g[0]["title"] == "Gabarit manquant : Ozone 10" and g[0]["count"] == 2 and not g[0]["selectable"]
+    sm = summarize(g)
+    assert sm["template_missing"] == 2 and sm["templates_needed"] == ["Ozone 10"] and sm["unsupported_plugins"] == 1
