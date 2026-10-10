@@ -374,7 +374,7 @@
       old: "À ouvrir et enregistrer dans Live 12, puis réanalyser.",
       template: `Pour convertir ces projets, ReAble a besoin d’un projet Live 12 qui contient ${g.targets.join(", ")} en VST3 (un « gabarit »). Chargez-le une fois dans un projet, enregistrez-le, puis ajoutez ce dossier.`, unsupported: g.plugins.slice(0, 4).join(", ") + (g.plugins.length > 4 ? "…" : "") + " — ReAble ne sait pas encore les convertir.",
       done: "Les copies existent déjà ; elles ne seront pas refaites." }[g.kind];
-    const act = g.kind === "template" ? btnLink("Ajouter un dossier de gabarits…", addTemplateDir) : g.kind === "old" ? btnLink("Copier la liste", copyOldList) : btnLink(open ? "Masquer" : g.kind === "unsupported" ? "Voir lesquels" : "Voir les projets", () => { open ? S.expanded.delete(g.id) : S.expanded.add(g.id); render(); });
+    const act = g.kind === "template" ? btnLink("Ajouter un dossier de gabarits…", addTemplateDir) : g.kind === "old" ? btnLink("Copier la liste", copyOldList) : g.kind === "unsupported" ? btnLink("Voir et remplacer…", openReport) : btnLink(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(g.id) : S.expanded.add(g.id); render(); });
     const cb = g.selectable ? h("input", { type: "checkbox", checked: sel, "aria-label": `Convertir ${g.title}`, onchange: (e) => { e.target.checked ? S.selected.add(g.id) : S.selected.delete(g.id); render(); } }) : null;
     const rows = [h("tr", {}, h("td", { class: "chk" }, cb), h("td", {}, stateEl),
       h("td", {}, h("strong", {}, g.title), h("span", { class: "sub" }, detail)), h("td", { class: "n" }, g.count), h("td", {}, act))];
