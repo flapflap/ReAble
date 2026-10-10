@@ -74,14 +74,28 @@ def adapt_state(plugin_name: str, state: bytes, template_state: bytes, mode: str
     return state, ""
 
 
-def effective_mode(plugin_name: str, mode: str) -> tuple[str, str]:
-    """Mode réellement appliqué : si la définition dit que l'état de cette version n'est pas repris, on passe en « none »
-    (le plugin cible démarre avec ses réglages par défaut ; l'ancien nom de preset reste en note)."""
+def effective_mode(plugin_name: str, mode: str, target_name: str = "") -> tuple[str, str]:
+    """Mode réellement appliqué : si la définition dit que l'état de cette version n'est pas repris, ou si la cible est un
+    autre plugin (remplacement choisi par l'utilisateur), on passe en « none » : le plugin cible démarre avec ses
+    réglages par défaut ; l'ancien nom de preset reste en note."""
+    if mode != "none" and target_name and is_other_plugin(plugin_name, target_name):
+        return "none", (f"l'état de « {plugin_name} » n'est pas repris par « {target_name} » (plugin différent) : "
+                        "réglages par défaut (ancien preset conservé en note)")
     d = definition_of(plugin_name)
     if mode != "none" and d is not None and not d.transfers_state(plugin_name):
         return "none", (f"l'état de « {plugin_name} » n'est pas repris par la version cible : "
                         "réglages par défaut (ancien preset conservé en note)")
     return mode, ""
+
+
+def is_other_plugin(source_name: str, target_name: str) -> bool:
+    """Vrai si la cible n'est pas une version du même plugin que la source (ex. Play → Opus, mais pas Ozone 9 → Ozone 10)."""
+    a, b = definition_of(source_name), definition_of(target_name)
+    if a is not None and b is not None and a.id == b.id:
+        return False
+    if a is None and b is None:
+        return source_name.strip().lower() != target_name.strip().lower()
+    return True
 
 
 def state_note(mode: str, plugin_name: str = "") -> str:

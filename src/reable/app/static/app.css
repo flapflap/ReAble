@@ -179,3 +179,9 @@ html,body{margin:0;height:100%;background:var(--pr-bg)}
 .pr .dlg.about .row{justify-content:center}
 .pr td.acts{white-space:nowrap}
 .pr td.acts .btn+.btn{margin-left:6px}
+.pr .acol{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:6px 0}
+.pr td.acts{white-space:normal}
+.pr .dlg.repl{width:440px}
+.pr .dlg.repl .pop{height:32px}
+.pr .dlg.repl .note{font-size:12px}
+.pr .dlg.repl .err{color:var(--pr-error);font-weight:600}

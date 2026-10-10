@@ -313,10 +313,12 @@ def rewrite_tree(tree: ET.ElementTree, plugin: str,
     dups: dict[ET.Element, tuple[ET.Element, list[ET.Element]]] = {}
     for dev in srcs:
         state = get_state(dev)
+        mode_used, mode_why = effective_mode(plugin, state_mode, target_name)
+        if state is None and mode_used == "none":
+            state = b""                       # réglages par défaut : l'ancien état n'est pas nécessaire
         if state is None:
             res.warnings.append("état sans données exploitables (plugin non NI ?) : device ignoré")
             continue
-        mode_used, mode_why = effective_mode(plugin, state_mode)
         if mode_why and mode_why not in res.warnings:
             res.warnings.append(mode_why)
         new_state, why = adapt_state(plugin, state, tpl_state, mode_used)

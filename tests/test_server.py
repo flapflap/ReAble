@@ -315,3 +315,40 @@ def test_missing_report_works_with_plan_items_of_any_format(app, monkeypatch):
     app.logic.items = [PlanItem("/tmp/x/Set.als", "Play", "VST3", status="bloqué", reason="pas de plugin VST3 compatible")]
     _, r = call(app, "GET", "/api/missing-report")
     assert r["rows"][0]["plugin"] == "Play" and r["rows"][0]["kind"] == "blocked" and r["rows"][0]["projects"] == ["Set"]
+
+
+def test_other_plugin_detection():
+    from reable.adapters import effective_mode, is_other_plugin
+    assert is_other_plugin("Play", "Opus") and is_other_plugin("Un Inconnu", "Opus")
+    assert not is_other_plugin("Ozone 9", "Ozone 10") and not is_other_plugin("Kontakt 5", "Kontakt 8")
+    mode, why = effective_mode("Play", "transfer", "Opus")
+    assert mode == "none" and "n'est pas repris par « Opus »" in why and "réglages par défaut" in why
+    assert effective_mode("Kontakt 5", "transfer", "Kontakt 8")[0] == "transfer"
+
+
+def test_replacement_needs_a_known_candidate_and_can_be_removed(app):
+    st, r = call(app, "POST", "/api/replacement", {"plugin": "Play", "target": "Opus"})
+    assert st == 400 and "inconnu" in r["error"]
+    assert call(app, "POST", "/api/replacement", {"plugin": "Play", "target": ""})[0] == 200      # retrait d'un remplacement absent : sans effet
+    assert call(app, "GET", "/api/replacement-candidates")[1] == {"candidates": []}
+
+
+@needs_set
+def test_replacement_by_another_plugin_gives_default_settings_group(app, tmp_path, monkeypatch):
+    import reable.adapters as adapters
+    monkeypatch.setattr(adapters, "is_other_plugin", lambda a, b: True)     # le set de test n'a qu'un plugin : on simule « autre plugin »
+    folder = tmp_path / "projets"
+    folder.mkdir()
+    shutil.copy(SET, folder / "Test.als")
+    call(app, "POST", "/api/options", {"only_missing": False, "out_dir": str(tmp_path / "out")})
+    wait_job(app, call(app, "POST", "/api/analyze", {"path": str(folder)})[1]["job"])
+    _, c = call(app, "GET", "/api/replacement-candidates")
+    assert any(x["name"] == "Massive X" for x in c["candidates"])
+    st, state = call(app, "POST", "/api/replacement", {"plugin": "Massive X", "target": "Massive X"})
+    assert st == 200 and state["options"]["mapping"] == {"Massive X": "Massive X"}
+    assert [g["kind"] for g in state["groups"] if g["selectable"]] == ["default"]
+    g = [x for x in state["groups"] if x["selectable"]][0]
+    wait_job(app, call(app, "POST", "/api/convert", {"groups": [g["id"]]})[1]["job"])
+    assert [p.name for p in (tmp_path / "out").rglob("*.als")] == ["Test [ReAble].als"]
+    state = call(app, "POST", "/api/replacement", {"plugin": "Massive X", "target": ""})[1]
+    assert state["options"]["mapping"] == {}

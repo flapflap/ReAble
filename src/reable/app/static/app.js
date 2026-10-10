@@ -97,6 +97,7 @@
     beta: { enabled: false },
     about: false,
     report: null,
+    repl: null,
   };
   let poll = null;
 
@@ -428,13 +429,17 @@
     const rows = rep.rows.flatMap((r) => {
       const [tone, label] = KIND_BADGE[r.kind] || KIND_BADGE.unknown;
       const key = "rep|" + r.plugin + "|" + r.format, open = S.expanded.has(key);
+      const mapped = ((S.server && S.server.options && S.server.options.mapping) || {})[r.plugin];
       const main = h("tr", {}, h("td", {}, h("strong", {}, r.plugin), h("span", { class: "sub" }, `${r.format}${r.vendor ? " · " + r.vendor : ""}`)),
         h("td", {}, stateBadge(tone, label)), h("td", {}, r.verdict, r.hint ? h("span", { class: "sub" }, r.hint) : null),
-        h("td", { class: "n" }, r.count), h("td", { class: "acts" }, btn(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(key) : S.expanded.add(key); render(); }, "btn btn-sm"),
-          r.kind === "unknown" || r.kind === "blocked" ? btn("Demander la prise en charge", () => openExternal(pluginRequestUrl(r)), "btn btn-sm btn-primary") : null));
+        h("td", { class: "n" }, r.count), h("td", { class: "acts" }, h("div", { class: "acol" },
+          btn(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(key) : S.expanded.add(key); render(); }, "btn btn-sm"),
+          mapped ? btn("Remplaçant : " + mapped + " · modifier", () => openReplacement(r), "btn btn-sm") : null,
+          !mapped && (r.kind === "unknown" || r.kind === "blocked") ? btn("Choisir un remplaçant…", () => openReplacement(r), "btn btn-sm") : null,
+          !mapped && (r.kind === "unknown" || r.kind === "blocked") ? btn("Demander la prise en charge", () => openExternal(pluginRequestUrl(r)), "btn btn-sm") : null)));
       return open ? [main, h("tr", { class: "sub" }, h("td", { colspan: 5 }, h("div", { class: "names" }, r.projects.map((n) => h("span", {}, n)))))] : [main];
     });
-    return h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:220px" }, "Plugin"), h("th", { style: "width:170px" }, "Situation"), h("th", { style: "min-width:220px" }, "Ce qu’il faut faire"), h("th", { style: "text-align:right;width:70px" }, "Projets"), h("th", { style: "width:290px" }))), h("tbody", {}, rows));
+    return h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:220px" }, "Plugin"), h("th", { style: "width:170px" }, "Situation"), h("th", { style: "min-width:220px" }, "Ce qu’il faut faire"), h("th", { style: "text-align:right;width:70px" }, "Projets"), h("th", { style: "width:250px" }))), h("tbody", {}, rows));
   }
   async function openReport() {
     try { S.report = await api("/api/missing-report"); } catch (e) { toast(e.message); return; }
@@ -443,6 +448,36 @@
   }
   async function copyReport() {
     try { await navigator.clipboard.writeText(reportText(S.report)); toast("Rapport copié."); } catch (e) { toast("Copie impossible : autorisation refusée."); }
+  }
+  async function openReplacement(r) {
+    let cands = [];
+    try { cands = (await api("/api/replacement-candidates")).candidates; } catch (e) { toast(e.message); return; }
+    const current = ((S.server.options || {}).mapping || {})[r.plugin] || "";
+    S.repl = { row: r, candidates: cands, choice: current, current };
+    render();
+  }
+  async function saveReplacement(target) {
+    const r = S.repl.row;
+    try {
+      S.server = await api("/api/replacement", { plugin: r.plugin, target });
+      S.report = await api("/api/missing-report");
+      toast(target ? `${r.plugin} sera remplacé par ${target}.` : "Remplacement retiré.");
+    } catch (e) { toast(e.message); }
+    S.repl = null; render();
+  }
+  function replacementDialog() {
+    const R = S.repl, r = R.row;
+    const close = () => { S.repl = null; render(); };
+    const select = h("select", { "aria-label": "Plugin remplaçant", onchange: (e) => { R.choice = e.target.value; render(); } },
+      h("option", { value: "" }, "Choisir un plugin…"), R.candidates.map((c) => h("option", { value: c.name, selected: c.name === R.choice }, c.name)));
+    return h("div", { class: "scrim", role: "presentation", onclick: (e) => { if (e.target === e.currentTarget) close(); } },
+      h("div", { class: "dlg repl", role: "dialog", "aria-modal": "true", "aria-labelledby": "repl-title" },
+        h("h2", { id: "repl-title" }, `Remplacer ${r.plugin}`),
+        h("p", {}, "Par quel plugin installé en VST3 ? Cela marche aussi bien pour un plugin qui a changé de nom (Play devenu Opus) que pour un autre plugin qui fait le même travail."),
+        R.candidates.length ? h("div", { class: "pop" }, select, icon("updown", "", 12)) : h("p", { class: "err" }, "Aucun plugin VST3 n’est connu : il faut un projet Live 12 qui contient le plugin remplaçant en VST3 (« gabarit »). Ajoutez-en un depuis l’écran Valider."),
+        h("p", { class: "note" }, "Le preset et les réglages ne sont pas transférés d’un plugin à un autre : le remplaçant démarre avec ses réglages par défaut, et le nom de l’ancien preset est noté sur la piste. Les automations de l’ancien plugin ne sont pas reprises."),
+        h("div", { class: "row" }, R.current ? btn("Retirer le remplacement", () => saveReplacement(""), "btn") : null, btn("Annuler", close, "btn"),
+          btn("Remplacer", () => saveReplacement(R.choice), "btn btn-primary", { disabled: !R.choice }))));
   }
   function viewReport() {
     const rep = S.report || { rows: [] };
@@ -610,6 +645,7 @@
     const keep = active && active.tagName === "INPUT" && active.type === "text" ? { v: active.value, s: active.selectionStart } : null;
     const nodes = VIEWS[S.view]().flat().filter(Boolean);
     if (S.about) nodes.push(aboutDialog());
+    if (S.repl) nodes.push(replacementDialog());
     root.replaceChildren(...nodes);
     if (keep) { const i = root.querySelector('input[type="text"]'); if (i) { i.value = keep.v; i.focus(); try { i.setSelectionRange(keep.s, keep.s); } catch (e) { /* ignore */ } } }
   }

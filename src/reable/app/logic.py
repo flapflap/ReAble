@@ -349,6 +349,29 @@ class AppLogic:
         out.sort(key=lambda x: (order.get(x["kind"], 9), -x["count"], x["plugin"].lower()))
         return {"folder": str(self.analysis.root), "rows": out}
 
+    def replacement_candidates(self) -> list[dict]:
+        """Plugins VST3 que l'utilisateur peut choisir comme remplaçants : ceux dont ReAble a un gabarit
+        (projet Live 12 contenant le plugin en VST3), seuls utilisables tout de suite."""
+        if self.analysis is None:
+            return []
+        out = {}
+        for key, tpl in (self.analysis.templates or {}).items():
+            out[key] = {"name": tpl[2] if len(tpl) > 2 and tpl[2] else key, "key": key}
+        return sorted(out.values(), key=lambda c: c["name"].lower())
+
+    def set_replacement(self, plugin: str, target: str) -> dict:
+        """Remplace (ou retire le remplacement) d'un plugin par un autre, pour toutes les analyses suivantes."""
+        mapping = dict(self.opts.mapping)
+        if target:
+            if not any(c["name"] == target for c in self.replacement_candidates()):
+                raise ValueError("plugin remplaçant inconnu : il doit exister en VST3 dans un projet analysé ou dans les gabarits")
+            mapping[plugin] = target
+        else:
+            mapping.pop(plugin, None)
+        if self.set_options({"mapping": mapping}):
+            self.replan()
+        return self.state()
+
     @staticmethod
     def _verdict(item, plugin) -> tuple[str, str]:
         d = registry.definition_of(plugin.name)

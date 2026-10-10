@@ -130,6 +130,8 @@ class App:
                     return self._json(200, L.state())
                 if method == "GET" and path == "/api/plugins":
                     return self._json(200, L.plugins())
+                if method == "GET" and path == "/api/replacement-candidates":
+                    return self._json(200, {"candidates": L.replacement_candidates()})
                 if method == "GET" and path == "/api/missing-report":
                     return self._json(200, L.missing_report())
                 if method == "GET" and path == "/api/ui-events":
@@ -170,6 +172,8 @@ class App:
                     return self._json(200, L.set_beta(bool(body.get("enabled"))))
                 if path == "/api/beta/export":
                     return self._json(200, {"path": L.export_beta()})
+                if path == "/api/replacement":
+                    return self._json(200, L.set_replacement(str(body.get("plugin", "")), str(body.get("target", ""))))
                 if path == "/api/dropped-path":
                     return self._json(200, L.dropped_path(str(body.get("name", ""))))
                 if path == "/api/open-url":
