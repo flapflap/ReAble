@@ -51,5 +51,16 @@ wait "$PID" || { echo "Mise en forme du Finder échouée : DMG simple."; hdiutil
 
 sync; sleep 1
 chmod -Rf go-w "/Volumes/$VOL" 2>/dev/null || true
-hdiutil detach "/Volumes/$VOL" >/dev/null 2>&1 || hdiutil detach "/Volumes/$VOL" -force >/dev/null
-hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null
+# Éjection : le Finder garde parfois le volume occupé quelques secondes ; on réessaie, puis on force
+for i in 1 2 3 4 5 6; do
+  hdiutil detach "/Volumes/$VOL" >/dev/null 2>&1 && break
+  sleep 3
+  [ "$i" -ge 4 ] && hdiutil detach "/Volumes/$VOL" -force >/dev/null 2>&1 && break
+done
+OK=0
+for i in 1 2 3 4 5; do
+  if hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -ov -o "$DMG" >/dev/null 2>&1; then OK=1; break; fi
+  sleep 4
+done
+if [ "$OK" != 1 ]; then echo "Conversion du DMG impossible : DMG simple."; hdiutil detach "/Volumes/$VOL" -force >/dev/null 2>&1; plain; fi
+[ -s "$DMG" ]
