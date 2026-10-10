@@ -31,6 +31,24 @@ DEV_DEFINITIONS_CANDIDATES = [Path(__file__).resolve().parents[3] / n / "definit
                               for n in ("ReAble-library", "PlugRescue-definitions")]   # développement : dépôt voisin du dépôt de code
 
 
+_ACRONYMS = {"fm8": "FM8", "wlm": "WLM", "t-racks": "T-RackS", "ik": "IK", "eq": "EQ", "ni": "NI", "pro-q": "Pro-Q", "pro-c": "Pro-C",
+             "pro-l": "Pro-L", "pro-mb": "Pro-MB"}
+
+
+def pretty_name(ident: str) -> str:
+    """Nom lisible d'un identifiant de définition : « fabfilter pro-q » -> « FabFilter Pro-Q »."""
+    words = []
+    for w in ident.replace("_", " ").split():
+        low = w.lower()
+        if low in _ACRONYMS:
+            words.append(_ACRONYMS[low])
+        elif low == "fabfilter":
+            words.append("FabFilter")
+        else:
+            words.append("-".join(part.capitalize() for part in w.split("-")))
+    return " ".join(words)
+
+
 @dataclass
 class Definition:
     id: str
@@ -44,6 +62,7 @@ class Definition:
     preferred_state_mode: str = "transfer"
     state_transfer_from: list[str] = field(default_factory=list)   # versions sources dont l'état est repris (vide = toutes)
     copy_controller_state: bool = False   # écrire aussi l'état dans ControllerState (requis par Ozone 10)
+    title: str = ""                  # nom lisible (facultatif) ; sinon déduit de l'identifiant
     source: str = "intégré"          # intégré | partagé | utilisateur
 
     def matches(self, name: str) -> bool:
@@ -61,6 +80,9 @@ class Definition:
         d = asdict(self)
         d.pop("source")
         return d
+
+    def display_name(self) -> str:
+        return self.title or pretty_name(self.id)
 
 
 def user_dir() -> Path:

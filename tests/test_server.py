@@ -215,3 +215,44 @@ def test_projects_with_the_same_name_in_different_folders_get_distinct_keys(tmp_
     done = [e for e in events if e.result in ("converti", "réglages par défaut")]
     assert len(done) == 2 and len({e.key for e in done}) == 2 and {e.item for e in done} == {"Meme nom"}
     assert sorted(e.path for e in done) == sorted(res.written) and all(e.key.endswith("Meme nom.als") for e in done)
+
+
+def test_plugin_display_names_are_readable(app):
+    from reable.registry import pretty_name
+    assert pretty_name("fabfilter pro-q") == "FabFilter Pro-Q"
+    assert pretty_name("massive x") == "Massive X"
+    assert pretty_name("fm8") == "FM8"
+    _, plugins = call(app, "GET", "/api/plugins")
+    assert all(p["name"] and p["name"][0].isupper() for p in plugins)
+
+
+def test_plugin_test_needs_an_analysis_and_a_known_plugin(app):
+    st, r = call(app, "POST", "/api/plugins/test", {"id": "neutron"})
+    assert st == 400 and "Analysez" in r["error"]
+    st, r = call(app, "POST", "/api/plugins/test", {"id": "inconnu"})
+    assert st == 400
+    st, r = call(app, "POST", "/api/plugins/test", {"id": "play"})
+    assert st == 400 and "rien à tester" in r["error"]
+
+
+@needs_set
+def test_plugin_test_writes_one_copy_outside_the_projects_then_validates(app, tmp_path):
+    folder = tmp_path / "projets"
+    folder.mkdir()
+    shutil.copy(SET, folder / "Test.als")
+    call(app, "POST", "/api/options", {"only_missing": False})
+    wait_job(app, call(app, "POST", "/api/analyze", {"path": str(folder)})[1]["job"])
+    st, r = call(app, "POST", "/api/plugins/test", {"id": "massive x"})
+    assert st == 200 and Path(r["path"]).exists() and "tests" in r["path"]
+    assert not list(folder.glob("*ReAble*"))                   # rien n'est écrit à côté des originaux
+    st, d = call(app, "POST", "/api/plugins/validate", {"id": "massive x", "result": "ok", "note": "ouvre bien"})
+    assert st == 200 and d["status"] == "validated" and d["validated"][-1]["note"] == "ouvre bien"
+    assert call(app, "POST", "/api/plugins/validate", {"id": "massive x", "result": "peut-être"})[0] == 400
+
+
+def test_beta_switch_and_version(app):
+    assert call(app, "GET", "/api/beta")[1]["enabled"] is False
+    assert call(app, "POST", "/api/beta", {"enabled": True})[1]["enabled"] is True
+    assert call(app, "GET", "/api/beta")[1]["enabled"] is True
+    _, state = call(app, "GET", "/api/state")
+    assert state["version"] == "0.1"

@@ -90,8 +90,15 @@ def run(port: int | None = None) -> int:
         from webview.dom import DOMEventHandler
         window.dom.document.events.drop += DOMEventHandler(on_drop, True, True)   # empêche la navigation du navigateur
     window.events.loaded += on_loaded
+    def show_about():
+        window.evaluate_js("window.reableShowSettings && window.reableShowSettings()")
     try:
-        webview.start()
+        from webview.menu import Menu, MenuAction
+        menu = [Menu("ReAble", [MenuAction("À propos de ReAble", show_about)])]
+    except ImportError:                      # ancienne version de pywebview : pas de menu personnalisé
+        menu = []
+    try:
+        webview.start(menu=menu)
     finally:
         app.stop()
     return 0

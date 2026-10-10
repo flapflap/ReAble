@@ -18,6 +18,7 @@
     box: '<path d="M12 3l8 4v10l-8 4-8-4V7z"/><path d="M4 7l8 4 8-4M12 11v10"/>',
     shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L15.5 10"/>',
     info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.1"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
     updown: '<path d="M7 10l5-5 5 5M7 14l5 5 5-5"/>',
   };
   function icon(name, cls = "", size = 14) {
@@ -76,7 +77,7 @@
 
   /* ---------- état de l'interface ---------- */
   const S = {
-    view: "choose", // choose | analyzing | understand | running | summary | stopped | empty | error | plugins
+    view: "choose", // choose | analyzing | understand | running | summary | stopped | empty | error | plugins | plugintest | settings
     server: null, // /api/state
     path: "",
     selected: new Set(),
@@ -92,6 +93,8 @@
     templateDirs: [],
     lastKind: null,
     summary: null,
+    ptest: null,   // test d'un plugin : { def, created, busy, error }
+    beta: { enabled: false },
   };
   let poll = null;
 
@@ -244,20 +247,32 @@
   function sidebar() {
     const sv = S.server, analyzed = sv && sv.analyzed;
     const step = { choose: 0, analyzing: 0, error: 0, understand: 1, empty: 1, running: 2, summary: 2, stopped: 2 }[S.view];
+    const lib = S.view === "plugins" || S.view === "plugintest" || S.view === "settings";
     return h("nav", { class: "sidebar", "aria-label": "Étapes" },
       h("h3", {}, "Étapes"),
-      nav("1 · Choisir", "folder", step === 0 && S.view !== "plugins", !busy(), () => { S.view = "choose"; render(); }, sv && sv.folder ? baseName(sv.folder) : ""),
-      nav("2 · Valider", "list", step === 1 && S.view !== "plugins", !busy() && analyzed, () => { S.view = sv.summary && sv.summary.to_convert ? "understand" : "empty"; render(); }),
-      nav("3 · Convertir", "play", step === 2 && S.view !== "plugins", false, () => {}),
+      nav("1 · Choisir", "folder", step === 0 && !lib, !busy(), () => { S.view = "choose"; render(); }, sv && sv.folder ? baseName(sv.folder) : ""),
+      nav("2 · Valider", "list", step === 1 && !lib, !busy() && analyzed, () => { S.view = sv.summary && sv.summary.to_convert ? "understand" : "empty"; render(); }),
+      nav("3 · Convertir", "play", step === 2 && !lib, false, () => {}),
       h("h3", { style: "margin-top:12px" }, "Bibliothèque"),
-      nav("Plugins", "box", S.view === "plugins", !busy(), openPlugins, S.plugins ? String(S.plugins.length) : ""),
-      h("div", { class: "safe" }, icon("shield", "", 16), h("span", {}, "Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].")));
+      nav("Plugins", "box", S.view === "plugins" || S.view === "plugintest", !busy(), openPlugins, S.plugins ? String(S.plugins.length) : ""),
+      nav("Réglages", "gear", S.view === "settings", !busy(), openSettings),
+      h("div", { class: "safe" }, icon("shield", "", 16), h("span", {}, "Vos projets d’origine ne sont jamais modifiés. Les copies portent [ReAble].")),
+      sv && sv.version ? h("div", { class: "ver" }, `ReAble · version ${sv.version}`) : null);
   }
+  const LIB_VIEWS = ["plugins", "plugintest", "settings"];
+  function rememberView() { if (!LIB_VIEWS.includes(S.view)) S.prevView = S.view; }
   async function openPlugins() {
     try { S.plugins = await api("/api/plugins"); } catch (e) { S.plugins = []; }
-    S.prevView = S.view === "plugins" ? S.prevView : S.view;
+    rememberView();
     S.view = "plugins"; render();
   }
+  async function openSettings() {
+    try { S.beta = await api("/api/beta"); } catch (e) { /* garde l'état connu */ }
+    try { S.server = await api("/api/state"); } catch (e) { /* idem */ }
+    rememberView();
+    S.view = "settings"; render();
+  }
+  const leaveLibrary = () => { S.view = S.prevView && !LIB_VIEWS.includes(S.prevView) ? S.prevView : "choose"; render(); };
   function titlebar(sub, ...tools) {
     return h("div", { class: "titlebar" }, h("img", { class: "logo", src: "logo.png", alt: "", width: 28, height: 28 }),
       h("div", { class: "ttl" }, h("b", {}, "ReAble"), sub ? h("span", {}, sub) : null), h("div", { class: "tools" }, ...tools));
@@ -435,18 +450,91 @@
         h("div", { class: "row" }, btn("Choisir un autre dossier", () => { S.view = "choose"; render(); }))),
       status("Aucun projet d’origine modifié."));
   }
+  const STATUS_LABEL = { validated: ["ok", "Validé"], experimental: ["warn", "À tester · bloqué"], unsupported: ["neu", "Non pris en charge"] };
+  const ORIGIN_LABEL = { "intégré": "Fournie avec ReAble", "partagé": "Bibliothèque partagée", "utilisateur": "Ajoutée ou validée par vous" };
+  const CAPABILITY = { "container-copy": "Reprend le preset et les réglages", izotope: "Reprend le preset et les réglages (format iZotope)" };
   function viewPlugins() {
-    const tone = { validated: ["ok", "Validé"], experimental: ["warn", "Expérimental · bloqué"], unsupported: ["neu", "Non pris en charge"] };
-    const rows = (S.plugins || []).map((d) => h("tr", {}, h("td", {}, h("strong", {}, d.id), h("span", { class: "sub" }, d.vendor || "")),
-      h("td", {}, stateBadge(tone[d.status][0], tone[d.status][1])), h("td", {}, d.adapter ? `Adaptateur : ${d.adapter}` : "Aucun adaptateur"), h("td", {}, d.source)));
-    return frame("Bibliothèque de plugins", [btn("Retour", () => { S.view = S.prevView && S.prevView !== "plugins" ? S.prevView : "choose"; render(); })],
-      [h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Plugin"), h("th", { style: "width:200px" }, "Statut"), h("th", {}, "Ce que ReAble sait faire"), h("th", { style: "width:100px" }, "Source"))), h("tbody", {}, rows)),
-        h("div", { class: "hint" }, icon("info", "", 16), h("div", {}, h("b", {}, "Un plugin non testé reste bloqué. "), "Après un test dans Live, indiquez le résultat avec la commande « plugins validate » : le plugin devient utilisable pour vous. Rien n’est envoyé sans votre accord."))],
-      status(h("span", {}, plural((S.plugins || []).length, "plugin connu", "plugins connus"), " · ", h("b", {}, (S.plugins || []).filter((d) => d.status === "validated").length), " validés")));
+    const rows = (S.plugins || []).map((d) => {
+      const [tone, label] = STATUS_LABEL[d.status];
+      const act = d.status === "experimental" ? btn("Tester ce plugin", () => { S.ptest = { def: d, created: null, busy: false, error: null, note: "" }; S.view = "plugintest"; render(); }, "btn btn-sm") : null;
+      return h("tr", {}, h("td", {}, h("strong", {}, d.name), h("span", { class: "sub" }, d.vendor || "")), h("td", {}, stateBadge(tone, label)),
+        h("td", {}, d.adapter ? (CAPABILITY[d.adapter] || "Prise en charge partielle") : "Pas encore convertible"), h("td", {}, ORIGIN_LABEL[d.source] || d.source), h("td", {}, act));
+    });
+    const validated = (S.plugins || []).filter((d) => d.status === "validated").length;
+    return frame("Bibliothèque de plugins", [btn("Retour", leaveLibrary)],
+      h("div", { class: "valid" },
+        h("div", {}, h("h2", {}, "Plugins connus de ReAble"), h("p", { class: "lead" }, `${plural(validated, "plugin validé", "plugins validés")} sur ${(S.plugins || []).length}. Un plugin « à tester » reste bloqué tant que vous n’avez pas vérifié le résultat dans Live.`)),
+        h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:190px" }, "Plugin"), h("th", { style: "width:170px" }, "Statut"), h("th", {}, "Ce que ReAble sait faire"), h("th", { style: "width:190px" }, "Origine"), h("th", { style: "width:130px" }))), h("tbody", {}, rows))),
+      null);
+  }
+  async function createTestCopy() {
+    const t = S.ptest; t.busy = true; t.error = null; render();
+    try { t.created = await api("/api/plugins/test", { id: t.def.id }); } catch (e) { t.error = e.message; }
+    t.busy = false; render();
+  }
+  async function sendVerdict(result) {
+    const t = S.ptest;
+    try {
+      await api("/api/plugins/validate", { id: t.def.id, result, note: t.note });
+      toast(result === "ok" ? `${t.def.name} est maintenant validé pour vous.` : `Noté : ${t.def.name} reste bloqué.`);
+      S.plugins = await api("/api/plugins"); S.server = await api("/api/state");
+      S.view = "plugins"; render();
+    } catch (e) { toast(e.message); }
+  }
+  function viewPluginTest() {
+    const t = S.ptest, d = t.def;
+    const step = (n, title, ...body) => h("div", { class: "step" }, h("span", { class: "num" }, String(n)), h("div", {}, h("b", {}, title), ...body));
+    const analyzed = S.server && S.server.analyzed;
+    const first = t.created
+      ? step(1, "La copie de test est prête", h("p", {}, `Projet « ${t.created.project} » : ${t.created.plugin} → ${t.created.target}. Rangée à part, vos projets ne sont pas touchés.`),
+          h("div", { class: "row" }, btn("Afficher dans le Finder", () => api("/api/reveal", { path: t.created.path }), "btn btn-sm")))
+      : step(1, "Créer une copie de test", analyzed
+          ? h("p", {}, `ReAble prend un de vos projets analysés qui utilise ${d.name} et en écrit une copie de test, rangée dans le dossier de ReAble.`)
+          : h("p", {}, `ReAble a besoin d’un de vos projets qui utilise ${d.name}. Analysez d’abord le dossier qui le contient.`),
+          t.error ? h("p", { class: "err" }, t.error) : null,
+          h("div", { class: "row" }, analyzed ? btn(t.busy ? "Création…" : "Créer la copie de test", createTestCopy, "btn btn-primary btn-sm", { disabled: t.busy })
+            : btn("Choisir un dossier", () => { S.view = "choose"; render(); }, "btn btn-primary btn-sm")));
+    const locked = !t.created;
+    return frame(`Tester ${d.name}`, [btn("Retour", () => { S.view = "plugins"; render(); })],
+      h("div", { class: "valid" },
+        h("div", {}, h("h2", {}, `Vérifier ${d.name} dans Live`), h("p", { class: "lead" }, "Trois étapes. Le résultat reste sur ce Mac : rien n’est envoyé sans votre accord.")),
+        first,
+        step(2, "Ouvrir la copie dans Live 12", h("p", {}, "Vérifiez que le plugin se charge, avec le même preset et des réglages identiques à ceux du projet d’origine. Jouez quelques notes ou écoutez la piste.")),
+        step(3, "Dire ce que vous avez constaté",
+          h("div", { class: "input", style: "max-width:420px" }, h("input", { type: "text", placeholder: "Remarque (facultatif)", value: t.note, disabled: locked, "aria-label": "Remarque",
+            oninput: (e) => { t.note = e.target.value; } })),
+          h("div", { class: "row" }, btn("Oui, c’est identique", () => sendVerdict("ok"), "btn btn-primary btn-sm", { disabled: locked }), btn("Non, il y a un problème", () => sendVerdict("ko"), "btn btn-sm", { disabled: locked })))),
+      null);
+  }
+  async function toggleBeta(on) {
+    try { S.beta = await api("/api/beta", { enabled: on }); } catch (e) { toast(e.message); }
+    render();
+  }
+  async function exportBeta() {
+    try { const r = await api("/api/beta/export", {}); toast("Résultats exportés sur le Bureau."); api("/api/reveal", { path: r.path }); } catch (e) { toast(e.message); }
+  }
+  function viewSettings() {
+    const sv = S.server || {};
+    const block = (title, ...kids) => h("section", { class: "block" }, h("h2", {}, title), ...kids);
+    return frame("Réglages", [btn("Retour", leaveLibrary)],
+      h("div", { class: "valid" },
+        block("Programme bêta",
+          h("p", { class: "lead" }, "Aidez à enrichir la bibliothèque : ReAble peut préparer un fichier anonyme avec le résultat de vos tests de plugins (aucun nom de projet, de piste ni de chemin). Vous l’envoyez vous-même, si vous le souhaitez."),
+          h("label", { class: "check" }, h("input", { type: "checkbox", checked: S.beta.enabled, onchange: (e) => toggleBeta(e.target.checked) }), "Participer au programme bêta"),
+          h("div", { class: "row" }, btn("Exporter mes résultats", exportBeta, "btn btn-sm", { disabled: !S.beta.enabled || !S.beta.has_results })),
+          S.beta.enabled && !S.beta.has_results ? h("p", { class: "lead" }, "Aucun résultat à exporter : testez d’abord un plugin depuis l’onglet Plugins.") : null),
+        block("Gabarits",
+          h("p", { class: "lead" }, "Pour convertir vers un plugin, ReAble a besoin d’un projet Live 12 qui le contient en VST3. Il en garde un exemplaire à chaque analyse ; vous pouvez en ajouter depuis l’écran Valider."),
+          S.templateDirs.length ? h("div", { class: "names" }, S.templateDirs.map((d) => h("span", {}, shortPath(d)))) : null),
+        block("Bibliothèque de plugins",
+          h("p", { class: "lead" }, `${plural(sv.definitions || 0, "plugin connu", "plugins connus")}.`),
+          h("div", { class: "row" }, btn("Voir les plugins", openPlugins, "btn btn-sm"))),
+        block("À propos", h("p", { class: "lead" }, `ReAble, version ${sv.version || "?"}. Vos projets d’origine ne sont jamais modifiés.`))),
+      null);
   }
 
   /* ---------- rendu ---------- */
-  const VIEWS = { choose: viewChoose, analyzing: viewAnalyzing, understand: viewUnderstand, empty: viewEmpty, running: viewRunning, summary: viewSummary, stopped: viewStopped, error: viewError, plugins: viewPlugins };
+  const VIEWS = { choose: viewChoose, analyzing: viewAnalyzing, understand: viewUnderstand, empty: viewEmpty, running: viewRunning, summary: viewSummary, stopped: viewStopped, error: viewError, plugins: viewPlugins, plugintest: viewPluginTest, settings: viewSettings };
   function render() {
     const active = document.activeElement;
     const keep = active && active.tagName === "INPUT" && active.type === "text" ? { v: active.value, s: active.selectionStart } : null;
@@ -456,6 +544,7 @@
   }
   window.addEventListener("beforeunload", (e) => { if (busy()) { e.preventDefault(); e.returnValue = ""; } });
   /* Point d'entrée pour la fenêtre native : « Arrêter et fermer ? » */
+  window.reableShowSettings = () => { if (!busy()) openSettings(); };
   window.reableRequestClose = () => {
     if (!busy()) return true;
     if (confirm("Une tâche est en cours. Arrêter et fermer ?\nLe projet en cours est abandonné proprement ; les copies déjà faites sont conservées.")) { stopJob(); return true; }

@@ -130,6 +130,8 @@ class App:
                     return self._json(200, L.state())
                 if method == "GET" and path == "/api/plugins":
                     return self._json(200, L.plugins())
+                if method == "GET" and path == "/api/beta":
+                    return self._json(200, L.beta_state())
                 if method == "GET" and path == "/api/old-sets":
                     return self._json(200, {"sets": L.old_sets_list()})
                 if method == "GET" and path.startswith("/api/jobs/"):
@@ -156,6 +158,14 @@ class App:
                     return self._json(202, {"job": L.restore([str(f) for f in body.get("files", [])]).id})
                 if path.startswith("/api/jobs/") and path.endswith("/stop"):
                     return self._json(200, {"stopping": L.jobs.stop(path.split("/")[3])})
+                if path == "/api/plugins/test":
+                    return self._json(200, L.plugin_test(str(body.get("id", ""))))
+                if path == "/api/plugins/validate":
+                    return self._json(200, L.plugin_validate(str(body.get("id", "")), str(body.get("result", "")), str(body.get("note", ""))))
+                if path == "/api/beta":
+                    return self._json(200, L.set_beta(bool(body.get("enabled"))))
+                if path == "/api/beta/export":
+                    return self._json(200, {"path": L.export_beta()})
                 if path == "/api/reveal":
                     return self._json(200, {"ok": L.reveal(str(body.get("path", "")))})
                 return self._err(404, "route inconnue")

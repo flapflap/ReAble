@@ -1,6 +1,7 @@
 """Logique de l'application, indépendante de HTTP et de la fenêtre : état, groupes, tâches. Testable seule."""
 from __future__ import annotations
 
+import dataclasses
 import json
 import shutil
 import subprocess
@@ -8,7 +9,7 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 
-from .. import api, registry, trace
+from .. import api, batch, registry, short_version, trace
 from ..batch import ConvertOptions, PlanItem
 from ..jobs import JobBusy, JobManager
 
@@ -103,7 +104,7 @@ class AppLogic:
                 "groups": groups, "summary": summarize(groups) if groups else None,
                 "definitions": len(registry.load_all()),
                 "options": self.opts.to_dict(), "job": cur.snapshot() if cur else None,
-                "written": len(self.last_written)}
+                "written": len(self.last_written), "version": short_version()}
 
     # ---- tâches
     def analyze(self, path: str, template_dirs: list[str] | None = None):
@@ -217,7 +218,57 @@ class AppLogic:
 
     @staticmethod
     def plugins() -> list[dict]:
-        return [{**d.to_dict(), "source": d.source} for d in registry.load_all()]
+        return [{**d.to_dict(), "source": d.source, "name": d.display_name()} for d in registry.load_all()]
+
+    # ---- validation d'un plugin (essai dans Live)
+    def plugin_test(self, def_id: str) -> dict:
+        """Écrit UNE copie de test d'un projet analysé qui utilise ce plugin (même s'il n'est pas encore validé)."""
+        d = next((x for x in registry.load_all() if x.id == def_id), None)
+        if d is None:
+            raise KeyError(f"plugin inconnu : {def_id}")
+        if not d.adapter:
+            raise RuntimeError("ReAble ne sait pas encore convertir ce plugin : il n'y a rien à tester.")
+        a = self.analysis
+        if a is None:
+            raise RuntimeError("Analysez d'abord un dossier qui contient un projet utilisant ce plugin.")
+        opts = dataclasses.replace(self.opts, families=frozenset(self.opts.families) | {def_id},
+                                   out_dir=registry.user_dir() / "tests" / def_id, if_exists="overwrite")
+        reasons = []
+        for r in sorted(a.reports, key=lambda r: Path(r.path).stat().st_size if Path(r.path).exists() else 0):
+            items = [i for i in batch.plan([r], a.inventory, a.templates, opts) if registry.family_of(i.plugin) == def_id]
+            ok = [i for i in items if i.status != "bloqué"]
+            reasons += [i.reason for i in items if i.status == "bloqué" and i.reason]
+            if not ok:
+                continue
+            res = batch.run(ok, opts, dry_run=False, root_dir=a.root)
+            if res.written:
+                return {"path": res.written[0], "project": Path(r.path).stem, "plugin": ok[0].plugin, "target": ok[0].target_name}
+            reasons += res.errors
+        if reasons:
+            raise RuntimeError("Aucune copie de test possible : " + reasons[0])
+        raise RuntimeError("Aucun projet analysé n'utilise ce plugin (ou il est installé tel quel). Analysez un dossier qui le contient.")
+
+    def plugin_validate(self, def_id: str, result: str, note: str = "") -> dict:
+        d = registry.record_validation(def_id, result, note=str(note)[:500])
+        self.replan()
+        return {**d.to_dict(), "source": d.source, "name": d.display_name()}
+
+    # ---- programme bêta
+    @staticmethod
+    def beta_state() -> dict:
+        cfg = registry.settings().get("beta", {})
+        return {"enabled": bool(cfg.get("enabled")), "has_results": any(i.get("validated") for i in registry._read_user())}
+
+    @staticmethod
+    def set_beta(enabled: bool) -> dict:
+        registry.set_beta(bool(enabled))
+        return AppLogic.beta_state()
+
+    @staticmethod
+    def export_beta() -> str:
+        dst = Path.home() / "Desktop" / "ReAble-resultats-beta.json"
+        dst.write_text(json.dumps(registry.export_bundle(beta=True), ensure_ascii=False, indent=1), encoding="utf-8")
+        return str(dst)
 
     def old_sets_list(self) -> list[str]:
         return sorted({s for g in group_items(self.items) if g["kind"] == "old" for s in g["sets"]})

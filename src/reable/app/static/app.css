@@ -155,3 +155,16 @@ html,body{margin:0;height:100%;background:var(--pr-bg)}
 .pr .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;padding:14px 16px;background:var(--pr-surface-2);border:.5px solid var(--pr-border);border-radius:var(--pr-radius-l)}
 .pr .opts .input{max-width:none}
 .pr .status.foot{height:52px;background:var(--pr-chrome);color:var(--pr-text)}
+
+.pr .nav.click:hover{background:var(--pr-accent-soft)}
+.pr .sidebar .ver{padding:6px 10px 0;font-size:11px;color:var(--pr-text-muted)}
+.pr .btn{white-space:nowrap}
+.pr .step{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border:.5px solid var(--pr-border);border-radius:var(--pr-radius-l);background:var(--pr-surface-2)}
+.pr .step .num{width:24px;height:24px;border-radius:50%;background:var(--pr-accent);color:var(--pr-accent-text);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.pr .step > div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pr .step p{color:var(--pr-text-muted)}
+.pr .step .row,.pr .block .row{display:flex;gap:8px;flex-wrap:wrap}
+.pr .step .err{color:var(--pr-error);font-weight:600}
+.pr .block{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:.5px solid var(--pr-border);border-radius:var(--pr-radius-l);background:var(--pr-surface-2)}
+.pr .block .names{display:flex;flex-wrap:wrap;gap:6px}
+.pr .block .names span{padding:2px 8px;border-radius:5px;background:var(--pr-surface);border:.5px solid var(--pr-border);font-size:12px}
