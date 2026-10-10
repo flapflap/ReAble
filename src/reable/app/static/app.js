@@ -96,6 +96,7 @@
     ptest: null,   // test d'un plugin : { def, created, busy, error }
     beta: { enabled: false },
     about: false,
+    report: null,
   };
   let poll = null;
 
@@ -277,11 +278,11 @@
 
   function sidebar() {
     const sv = S.server, analyzed = sv && sv.analyzed;
-    const step = { choose: 0, analyzing: 0, error: 0, understand: 1, empty: 1, running: 2, summary: 2, stopped: 2 }[S.view];
+    const step = { choose: 0, analyzing: 0, error: 0, understand: 1, empty: 1, running: 2, summary: 2, stopped: 2, report: 1 }[S.view];
     const lib = S.view === "plugins" || S.view === "plugintest" || S.view === "settings";
     return h("nav", { class: "sidebar", "aria-label": "Étapes" },
       h("h3", {}, "Étapes"),
-      nav("1 · Choisir", "folder", step === 0 && !lib, !busy(), () => { S.view = "choose"; render(); }, sv && sv.folder ? baseName(sv.folder) : ""),
+      nav("1 · Choisir", "folder", step === 0 && !lib, !busy(), () => { S.view = "choose"; render(); }),
       nav("2 · Valider", "list", step === 1 && !lib, !busy() && analyzed, () => { S.view = sv.summary && sv.summary.to_convert ? "understand" : "empty"; render(); }),
       nav("3 · Convertir", "play", step === 2 && !lib, false, () => {}),
       h("h3", { style: "margin-top:12px" }, "Bibliothèque"),
@@ -402,7 +403,7 @@
     const sv = S.server, groups = sv.groups;
     const selCount = new Set(groups.filter((g) => g.selectable && S.selected.has(g.id)).flatMap((g) => g.sets)).size;
     const foot = h("div", { class: "status foot" },
-      btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); }), h("span", { class: "grow" }),
+      btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); }), btn("Plugins manquants", openReport), h("span", { class: "grow" }),
       btn("Essai à blanc", () => startConvert(true), "btn", { disabled: !selCount }),
       btn(`Convertir ${plural(selCount, "projet", "projets")}`, () => startConvert(false), "btn btn-primary", { disabled: !selCount }));
     return frame(`${baseName(sv.folder)} · ${plural(sv.sets, "projet analysé", "projets analysés")}`, [],
@@ -412,6 +413,35 @@
           h("tbody", {}, groups.flatMap(groupRow))),
         h("div", {}, h("h2", { style: "margin-bottom:8px" }, "Options de conversion"), h("div", { class: "opts" }, ...optionFields(false)))),
       foot);
+  }
+  const KIND_BADGE = { blocked: ["err", "Non convertible"], unknown: ["err", "Inconnu"], template: ["warn", "Gabarit requis"], old: ["warn", "Projet à ré-enregistrer"], convert: ["ok", "Sera converti"], done: ["ok", "Déjà fait"] };
+  function reportText(rep) {
+    return [`Plugins manquants — ${shortPath(rep.folder)}`, ""].concat(rep.rows.map((r) => `${r.plugin} (${r.format}) · ${plural(r.count, "projet", "projets")} · ${r.verdict}${r.hint ? " · " + r.hint : ""}\n   ${r.projects.join(", ")}`)).join("\n");
+  }
+  function reportBlock(rep, expanded) {
+    if (!rep || !rep.rows.length) return h("p", { class: "lead" }, "Aucun plugin manquant dans ce dossier.");
+    const rows = rep.rows.flatMap((r) => {
+      const [tone, label] = KIND_BADGE[r.kind] || KIND_BADGE.unknown;
+      const key = "rep|" + r.plugin + "|" + r.format, open = S.expanded.has(key);
+      const main = h("tr", {}, h("td", {}, h("strong", {}, r.plugin), h("span", { class: "sub" }, `${r.format}${r.vendor ? " · " + r.vendor : ""}`)),
+        h("td", {}, stateBadge(tone, label)), h("td", {}, r.verdict, r.hint ? h("span", { class: "sub" }, r.hint) : null),
+        h("td", { class: "n" }, r.count), h("td", {}, btn(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(key) : S.expanded.add(key); render(); }, "btn btn-sm")));
+      return open ? [main, h("tr", { class: "sub" }, h("td", { colspan: 5 }, h("div", { class: "names" }, r.projects.map((n) => h("span", {}, n)))))] : [main];
+    });
+    return h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:220px" }, "Plugin"), h("th", { style: "width:170px" }, "Situation"), h("th", {}, "Ce qu’il faut faire"), h("th", { style: "text-align:right;width:70px" }, "Projets"), h("th", { style: "width:150px" }))), h("tbody", {}, rows));
+  }
+  async function openReport() {
+    try { S.report = await api("/api/missing-report"); } catch (e) { toast(e.message); return; }
+    S.prevReport = S.view === "report" ? S.prevReport : S.view;
+    S.view = "report"; render();
+  }
+  async function copyReport() {
+    try { await navigator.clipboard.writeText(reportText(S.report)); toast("Rapport copié."); } catch (e) { toast("Copie impossible : autorisation refusée."); }
+  }
+  function viewReport() {
+    const rep = S.report || { rows: [] };
+    return frame("Plugins manquants", [btn("Copier le rapport", copyReport, "btn", { disabled: !rep.rows.length }), btn("Retour", () => { S.view = S.prevReport || "understand"; render(); })],
+      h("div", { class: "valid" }, h("div", {}, h("h2", {}, "Plugins manquants dans ce dossier"), h("p", { class: "lead" }, `${plural(rep.rows.length, "plugin manquant", "plugins manquants")}, classés des plus bloquants aux plus simples.`)), reportBlock(rep)), null);
   }
   function viewEmpty() {
     const sv = S.server, sm = sv.summary || {};
@@ -426,7 +456,7 @@
     if (!reasons.length) reasons.push("Aucun projet de ce dossier ne contient de plugin manquant que ReAble sait remplacer.");
     return frame(`${baseName(sv.folder)} · ${plural(sv.sets, "projet analysé", "projets analysés")}`, [btn("Réanalyser", () => { S.path = sv.folder; startAnalyze(); })],
       [noDefs(), h("div", { class: "center" }, icon("ok", "big", 48), h("h2", {}, title), reasons.map((r) => h("p", {}, r)),
-        h("div", { class: "row" }, btn("Voir les plugins", openPlugins)))],
+        h("div", { class: "row" }, btn("Voir le rapport des plugins manquants", openReport))),],
       null);
   }
   function countsLine(c, d, i, e, extra) {
@@ -568,7 +598,7 @@
   }
 
   /* ---------- rendu ---------- */
-  const VIEWS = { choose: viewChoose, analyzing: viewAnalyzing, understand: viewUnderstand, empty: viewEmpty, running: viewRunning, summary: viewSummary, stopped: viewStopped, error: viewError, plugins: viewPlugins, plugintest: viewPluginTest, settings: viewSettings };
+  const VIEWS = { choose: viewChoose, analyzing: viewAnalyzing, understand: viewUnderstand, empty: viewEmpty, running: viewRunning, summary: viewSummary, stopped: viewStopped, error: viewError, plugins: viewPlugins, plugintest: viewPluginTest, settings: viewSettings, report: viewReport };
   function render() {
     const active = document.activeElement;
     const keep = active && active.tagName === "INPUT" && active.type === "text" ? { v: active.value, s: active.selectionStart } : null;

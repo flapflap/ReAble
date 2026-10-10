@@ -275,3 +275,43 @@ def test_native_window_messages_are_picked_up_once_by_the_page(app):
     _, r = call(app, "GET", "/api/ui-events")
     assert [e["type"] for e in r["events"]] == ["about", "drop"]
     assert call(app, "GET", "/api/ui-events")[1]["events"] == []
+
+
+def test_missing_report_is_empty_before_any_analysis(app):
+    st, r = call(app, "GET", "/api/missing-report")
+    assert st == 200 and r == {"folder": None, "rows": []}
+
+
+def test_verdicts_say_what_to_do_for_each_missing_plugin():
+    from types import SimpleNamespace as NS
+    from reable.app.logic import AppLogic
+    plugin = lambda name, fam=(): NS(name=name, family_installed=list(fam))
+    convert = NS(status="convertible", reason="", target_name="Massive X")
+    assert AppLogic._verdict(convert, plugin("Massive"))[0] == "convert"
+    assert AppLogic._verdict(NS(status="bloqué", reason="set trop ancien (avant Live 11)", target_name=""), plugin("Massive"))[0] == "old"
+    assert AppLogic._verdict(NS(status="bloqué", reason="aucun gabarit VST3 « x »", target_name=""), plugin("Massive"))[0] == "template"
+    assert AppLogic._verdict(None, plugin("Un Plugin Inconnu"))[0] == "unknown"
+    assert AppLogic._verdict(NS(status="bloqué", reason="pas de plugin VST3 compatible", target_name=""), plugin("Play"))[0] == "blocked"
+
+
+@needs_set
+def test_missing_report_lists_projects_and_plugins_after_an_analysis(app, tmp_path):
+    folder = tmp_path / "projets"
+    folder.mkdir()
+    shutil.copy(SET, folder / "Test.als")
+    wait_job(app, call(app, "POST", "/api/analyze", {"path": str(folder)})[1]["job"])
+    _, r = call(app, "GET", "/api/missing-report")
+    assert r["folder"] == str(folder)
+    for row in r["rows"]:
+        assert row["projects"] == ["Test"] and row["count"] == 1 and row["verdict"]
+
+
+def test_missing_report_works_with_plan_items_of_any_format(app, monkeypatch):
+    """Régression : le rapport lisait un attribut inexistant de PlanItem (format au lieu de source_format)."""
+    from types import SimpleNamespace as NS
+    from reable.batch import PlanItem
+    plugin = NS(name="Play", format="VST3", manufacturer="EastWest", install_status="manquant", family_installed=[])
+    app.logic.analysis = NS(root=Path("/tmp/x"), reports=[NS(path="/tmp/x/Set.als", plugins=[plugin])])
+    app.logic.items = [PlanItem("/tmp/x/Set.als", "Play", "VST3", status="bloqué", reason="pas de plugin VST3 compatible")]
+    _, r = call(app, "GET", "/api/missing-report")
+    assert r["rows"][0]["plugin"] == "Play" and r["rows"][0]["kind"] == "blocked" and r["rows"][0]["projects"] == ["Set"]

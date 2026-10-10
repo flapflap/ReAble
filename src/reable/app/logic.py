@@ -319,6 +319,56 @@ class AppLogic:
         dst.write_text(json.dumps(registry.export_bundle(beta=True), ensure_ascii=False, indent=1), encoding="utf-8")
         return str(dst)
 
+    def missing_report(self) -> dict:
+        """Rapport des plugins manquants du dossier analysé : pour chacun, les projets concernés et ce qu'il faut faire."""
+        if self.analysis is None:
+            return {"folder": None, "rows": []}
+        by_item = {(i.set_path, i.plugin, i.source_format): i for i in self.items}
+        rows: dict[tuple[str, str], dict] = {}
+        for r in self.analysis.reports:
+            for p in r.plugins:
+                if p.install_status != "manquant":
+                    continue
+                row = rows.setdefault((p.name, p.format), {"plugin": p.name, "format": p.format, "vendor": p.manufacturer, "projects": set(),
+                                                           "verdicts": set(), "kind": "unknown", "hint": ""})
+                row["projects"].add(Path(r.path).stem)
+                kind, text = self._verdict(by_item.get((r.path, p.name, p.format)), p)
+                row["verdicts"].add((kind, text))
+                if p.family_installed and not row["hint"]:
+                    row["hint"] = "Déjà installé : " + ", ".join(p.family_installed[:3])
+        out = []
+        order = {"blocked": 0, "unknown": 1, "template": 2, "old": 3, "convert": 4, "done": 5}
+        for row in rows.values():
+            verdicts = sorted(row.pop("verdicts"), key=lambda v: order.get(v[0], 9))
+            row["kind"], row["verdict"] = verdicts[0] if verdicts else ("unknown", "")
+            if len({v[0] for v in verdicts}) > 1:
+                row["verdict"] += f" ({len(verdicts)} situations selon les projets)"
+            row["projects"] = sorted(row["projects"])
+            row["count"] = len(row["projects"])
+            out.append(row)
+        out.sort(key=lambda x: (order.get(x["kind"], 9), -x["count"], x["plugin"].lower()))
+        return {"folder": str(self.analysis.root), "rows": out}
+
+    @staticmethod
+    def _verdict(item, plugin) -> tuple[str, str]:
+        d = registry.definition_of(plugin.name)
+        if item is not None and item.status in ("convertible", "converti"):
+            return "convert", f"Sera converti vers {item.target_name}"
+        if item is not None and item.status == "ignoré":
+            return "done", "Déjà converti : la copie existe"
+        reason = (item.reason if item is not None else "") or ""
+        if "trop ancien" in reason:
+            return "old", "Projet à ouvrir et enregistrer dans Live 12, puis réanalyser"
+        if reason.startswith("aucun gabarit"):
+            return "template", "Il manque un projet Live 12 contenant ce plugin en VST3 (gabarit)"
+        if d is None:
+            return "unknown", "Plugin inconnu de ReAble : il n'est pas encore pris en charge"
+        if d.status == "unsupported" or not d.adapter:
+            return "blocked", "ReAble ne sait pas encore le convertir"
+        if d.status == "experimental":
+            return "blocked", "À tester dans l'onglet Plugins avant de pouvoir être converti"
+        return "blocked", "Pas de version VST3 compatible installée sur ce Mac"
+
     def old_sets_list(self) -> list[str]:
         return sorted({s for g in group_items(self.items) if g["kind"] == "old" for s in g["sets"]})
 
