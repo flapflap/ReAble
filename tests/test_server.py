@@ -404,3 +404,35 @@ def test_english_dictionary_covers_every_static_text_of_the_interface():
               "[Idée]", "estimating…", "— ReAble can’t convert them yet.", "plugin n’a", "plugins n’ont",        # arguments de L() et plural()
               "copie déjà faite est conservée", "copies déjà faites sont conservées"}
     assert not [t for t in missing if t not in ignore], missing
+
+
+def test_intel_only_plugins_count_as_missing_on_apple_silicon(tmp_path, monkeypatch):
+    import struct
+    from reable import inventory
+    from reable.model import Plugin
+
+    def bundle(name, kind, cpus, folder):
+        b = tmp_path / "Plug-Ins" / folder / f"{name}.{kind}" / "Contents/MacOS"
+        b.mkdir(parents=True)
+        if len(cpus) == 1:
+            data = b"\xcf\xfa\xed\xfe" + struct.pack("<I", cpus[0]) + b"\0" * 64
+        else:
+            data = b"\xca\xfe\xba\xbe" + struct.pack(">I", len(cpus)) + b"".join(struct.pack(">IIIII", c, 0, 0, 0, 0) for c in cpus)
+        (b / name).write_bytes(data)
+        return b.parent.parent
+
+    X86, ARM = 0x01000007, 0x0100000C
+    assert inventory.bundle_archs(bundle("Intel", "vst", [X86], "VST")) == {"x86_64"}
+    assert inventory.bundle_archs(bundle("Both", "vst3", [X86, ARM], "VST3")) == {"x86_64", "arm64"}
+    monkeypatch.setattr(inventory, "runs_natively_here", lambda: True)
+    inv = inventory.scan_installed([tmp_path / "Plug-Ins"])
+    assert inv.intel_only["VST2"] == {"intel"} and inv.intel_only["VST3"] == set()
+    ps = [Plugin("T", "Intel", "VST2", "Intel"), Plugin("T", "Both", "VST3", "Both")]
+    inventory.check(ps, inv)
+    assert ps[0].install_status == "manquant" and "Intel" in ps[0].install_detail
+    assert ps[1].install_status == "installé"
+    monkeypatch.setattr(inventory, "runs_natively_here", lambda: False)          # Mac Intel : rien n'est signalé
+    inv = inventory.scan_installed([tmp_path / "Plug-Ins"])
+    ps = [Plugin("T", "Intel", "VST2", "Intel")]
+    inventory.check(ps, inv)
+    assert ps[0].install_status == "installé"
