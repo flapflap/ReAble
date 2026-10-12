@@ -1,3 +1,4 @@
+import pytest
 import threading
 import time
 
@@ -52,6 +53,7 @@ def test_dropped_folder(tmp_path):
 
 
 def test_dropped_path_finds_the_real_path_by_name(tmp_path):
+    pytest.importorskip("webview")            # pywebview est facultatif (extra « app ») : absent du CI des tests
     from webview.dom import _dnd_state
     from reable.app.logic import AppLogic
     d = tmp_path / "Mes Projets"
