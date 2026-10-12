@@ -25,6 +25,11 @@ EN = {
     "Piste d'origine conservée et mutée (plugin {fmt}).\nRemplacée par : {track}":
         "Original track kept and muted ({fmt} plugin).\nReplaced by: {track}",
     "Restauré": "Restored",
+    "Plugin manquant : {plugin} ({fmt})": "Missing plugin: {plugin} ({fmt})",
+    "Preset d'origine : {preset}": "Original preset: {preset}",
+    "Non converti par ReAble : {why}": "Not converted by ReAble: {why}",
+    "il manque un projet Live 12 contenant le plugin remplaçant en VST3": "a Live 12 project containing the replacement plugin as VST3 is missing",
+    "ReAble ne sait pas encore le convertir": "ReAble can't convert it yet",
 }
 
 TRACK_INFO_FR = ("Converti par ReAble le {date}\n{plugin} : {from} → {to}\n"

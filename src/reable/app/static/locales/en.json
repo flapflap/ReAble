@@ -255,7 +255,14 @@
   "projets faits": "projects done",
   "non traité": "not processed",
   "non traités": "not processed",
-  "Voir les plugins": "View the plugins"
+  "Voir les plugins": "View the plugins",
+  "Texte d’info seulement": "Info note only",
+  "Texte d’info": "Info note",
+  "annoté": "annotated",
+  "Plugins sans conversion : texte d'info": "Plugins without conversion: info note",
+  "Aucune conversion possible : ReAble écrit sur chaque piste le plugin manquant, son preset s’il est lisible et la raison.": "No conversion possible: ReAble writes on each track the missing plugin, its preset if readable, and the reason.",
+  "Noter aussi sur la piste les plugins manquants que ReAble ne peut pas convertir": "Also note on the track the missing plugins ReAble can’t convert",
+  "avec texte d’info seulement ·": "with info note only ·"
  },
  "patterns": [
   [

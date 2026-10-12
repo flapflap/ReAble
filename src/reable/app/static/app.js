@@ -160,7 +160,7 @@
       if (snap.state === "stopped") { S.view = "choose"; toast("Analyse arrêtée."); return; }
       const sm = S.server.summary;
       S.selected = new Set(S.server.groups.filter((g) => g.selectable).map((g) => g.id));
-      S.view = !sm || (sm.to_convert === 0) ? "empty" : "understand";
+      S.view = !sm || (sm.actionable === 0) ? "empty" : "understand";
     } else if (kind === "convert" || kind === "plan") {
       S.summary = { state: snap.state, result: snap.result, kind, last: S.job.last };
       S.view = snap.state === "stopped" ? "stopped" : "summary";
@@ -291,7 +291,7 @@
     return h("nav", { class: "sidebar", "aria-label": "Étapes" },
       h("h3", {}, "Étapes"),
       nav("1 · Choisir", "folder", step === 0 && !lib, !busy(), () => { S.view = "choose"; render(); }),
-      nav("2 · Valider", "list", step === 1 && !lib, !busy() && analyzed, () => { S.view = sv.summary && sv.summary.to_convert ? "understand" : "empty"; render(); }),
+      nav("2 · Valider", "list", step === 1 && !lib, !busy() && analyzed, () => { S.view = sv.summary && sv.summary.actionable ? "understand" : "empty"; render(); }),
       nav("3 · Convertir", "play", step === 2 && !lib, false, () => {}),
       h("h3", { style: "margin-top:12px" }, "Bibliothèque"),
       nav("Plugins", "box", S.view === "plugins" || S.view === "plugintest", !busy(), openPlugins, S.plugins ? String(S.plugins.length) : ""),
@@ -370,12 +370,13 @@
     const sel = S.selected.has(g.id);
     const open = S.expanded.has(g.id);
     const stateEl = { validated: stateBadge("ok", "Validé"), default: stateBadge("warn", "Réglages par défaut"), old: stateBadge("err", "Action requise"), template: stateBadge("err", "Gabarit requis"),
-      unsupported: stateBadge("neu", "Non pris en charge"), done: stateBadge("ok", "Déjà fait") }[g.kind];
+      unsupported: stateBadge("neu", "Non pris en charge"), done: stateBadge("ok", "Déjà fait"), notes: stateBadge("neu", "Texte d’info seulement") }[g.kind];
     const detail = { validated: "Vos réglages seront repris.",
       default: "Repart des réglages par défaut ; l’ancien preset est noté sur la piste.",
       old: "À ouvrir et enregistrer dans Live 12, puis réanalyser.",
       template: L(`Pour convertir ces projets, ReAble a besoin d’un projet Live 12 qui contient ${g.targets.join(", ")} en VST3 (un « gabarit »). Chargez-le une fois dans un projet, enregistrez-le, puis ajoutez ce dossier.`, `To convert these projects, ReAble needs a Live 12 project that contains ${g.targets.join(", ")} as VST3 (a “template”). Load it once in a project, save it, then add that folder.`), unsupported: g.plugins.slice(0, 4).join(", ") + (g.plugins.length > 4 ? "…" : "") + L(" — ReAble ne sait pas encore les convertir.", " — ReAble can’t convert them yet."),
-      done: "Les copies existent déjà ; elles ne seront pas refaites." }[g.kind];
+      done: "Les copies existent déjà ; elles ne seront pas refaites.",
+      notes: "Aucune conversion possible : ReAble écrit sur chaque piste le plugin manquant, son preset s’il est lisible et la raison." }[g.kind];
     const act = g.kind === "template" ? btnLink("Ajouter un dossier de gabarits…", addTemplateDir) : g.kind === "old" ? btnLink("Copier la liste", copyOldList) : g.kind === "unsupported" ? btnLink("Voir et remplacer…", openReport) : btnLink(open ? "Masquer" : "Voir les projets", () => { open ? S.expanded.delete(g.id) : S.expanded.add(g.id); render(); });
     const cb = g.selectable ? h("input", { type: "checkbox", checked: sel, "aria-label": `Convertir ${g.title}`, onchange: (e) => { e.target.checked ? S.selected.add(g.id) : S.selected.delete(g.id); render(); } }) : null;
     const rows = [h("tr", {}, h("td", { class: "chk" }, cb), h("td", {}, stateEl),
@@ -401,6 +402,7 @@
         h("div", { class: "pv" }, h("span", {}, "Aperçu"), h("span", { class: "mono" }, `Lead → ${sample}`))),
       field("Si la copie existe déjà", sel(o.if_exists, [["skip", "Ne pas la refaire"], ["overwrite", "La remplacer"], ["number", "Numéroter"]], (v) => saveOption({ if_exists: v }), "Si la copie existe déjà")),
       h("label", { class: "check" }, h("input", { type: "checkbox", checked: o.track_info, disabled: locked, onchange: (e) => saveOption({ track_info: e.target.checked }) }), "Écrire un texte d’information sur la piste"),
+      h("label", { class: "check" }, h("input", { type: "checkbox", checked: o.note_unconverted, disabled: locked, onchange: (e) => saveOption({ note_unconverted: e.target.checked }) }), "Noter aussi sur la piste les plugins manquants que ReAble ne peut pas convertir"),
     ];
   }
   /* Panneau de réglages verrouillés, affiché pendant une conversion. */
@@ -503,23 +505,23 @@
         h("div", { class: "row" }, btn("Voir le rapport des plugins manquants", openReport))),],
       null);
   }
-  function countsLine(c, d, i, e, extra) {
-    return h("div", { class: "counts" }, h("b", {}, c), " convertis · ", h("b", {}, d), " en réglages par défaut · ", h("b", {}, i), " ignorés · ", h("b", {}, e), L(e > 1 ? " erreurs" : " erreur", e === 1 ? " error" : " errors"), extra ? ` · ${extra}` : "");
+  function countsLine(c, d, i, e, extra, a = 0) {
+    return h("div", { class: "counts" }, h("b", {}, c), " convertis · ", h("b", {}, d), " en réglages par défaut · ", a ? [h("b", {}, a), " avec texte d’info seulement · "] : null, h("b", {}, i), " ignorés · ", h("b", {}, e), L(e > 1 ? " erreurs" : " erreur", e === 1 ? " error" : " errors"), extra ? ` · ${extra}` : "");
   }
   function resultRow(r, i) {
     const k = r.result;
-    const st = !k ? stateBadge("run", "En cours") : k === "converti" ? stateBadge("ok", "Converti") : k === "réglages par défaut" ? stateBadge("warn", "Réglages par défaut") : k === "erreur" ? stateBadge("err", "Erreur") : stateBadge("neu", "Ignoré");
+    const st = !k ? stateBadge("run", "En cours") : k === "converti" ? stateBadge("ok", "Converti") : k === "réglages par défaut" ? stateBadge("warn", "Réglages par défaut") : k === "erreur" ? stateBadge("err", "Erreur") : k === "annoté" ? stateBadge("neu", "Texte d’info") : stateBadge("neu", "Ignoré");
     return h("tr", { class: !k ? "sel" : "" }, h("td", { style: "width:170px" }, st), h("td", {}, h("strong", { translate: "no" }, r.name)));
   }
   function viewRunning() {
     const l = S.job && S.job.last;
     const dry = S.job && S.job.kind === "plan";
-    const counts = { c: 0, d: 0, i: 0, e: 0 };
-    for (const r of S.rows) { if (r.result === "converti") counts.c++; else if (r.result === "réglages par défaut") counts.d++; else if (r.result === "erreur") counts.e++; else if (r.result === "ignoré") counts.i++; }
+    const counts = { c: 0, d: 0, i: 0, e: 0, a: 0 };
+    for (const r of S.rows) { if (r.result === "converti") counts.c++; else if (r.result === "réglages par défaut") counts.d++; else if (r.result === "erreur") counts.e++; else if (r.result === "annoté") counts.a++; else if (r.result === "ignoré") counts.i++; }
     const log = S.log.filter((x) => S.logFilter === "all" || (S.logFilter === "warn" && (x.kind === "warn" || x.kind === "err")) || (S.logFilter === "err" && x.kind === "err")).slice(-120);
     const seg = (id, label) => h("span", { class: S.logFilter === id ? "on" : "", role: "button", tabindex: "0", onclick: () => { S.logFilter = id; render(); } }, label);
     return frame(`${T(dry ? "Essai à blanc" : "Conversion en cours")} · ${baseName(S.server.folder)}`, [stopButton()],
-      [progressBlock("projets", S.job ? S.job.total : 0), countsLine(counts.c, counts.d, counts.i, counts.e),
+      [progressBlock("projets", S.job ? S.job.total : 0), countsLine(counts.c, counts.d, counts.i, counts.e, "", counts.a),
         h("div", { class: "list" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", { style: "width:170px" }, "État"), h("th", {}, "Projet"))), h("tbody", {}, S.rows.slice(-60).map(resultRow)))),
         h("div", { class: "logpane" }, h("header", {}, "Journal", h("span", { class: "seg", role: "group", "aria-label": "Filtre du journal" }, seg("all", "Tout"), seg("warn", "Avertissements"), seg("err", "Erreurs"))),
           h("div", { class: "log", role: "log", "aria-label": "Journal" }, log.map((x) => h("div", {}, h("time", {}, x.t), h("span", { class: x.kind === "ok" ? "ok" : "" }, x.text)))))],
@@ -534,7 +536,7 @@
         btn("Annuler cette conversion", undoAll, "btn", { disabled: !written.length })],
       [h("div", { class: "summary" }, h("h2", {}, `Conversion terminée : ${plural(written.length, "projet converti", "projets convertis")}, ${plural(c.errors || 0, "erreur", "erreurs")}`),
           h("p", {}, "Les copies sont à côté des originaux, avec [ReAble] dans leur nom. Vos originaux n’ont pas été modifiés."),
-          countsLine(c.converted || 0, c.default || 0, c.skipped || 0, c.errors || 0, S.job && S.job.last ? L(`durée ${fmtTime(S.job.last.elapsed)}`, `duration ${fmtTime(S.job.last.elapsed)}`) : "")),
+          countsLine(c.converted || 0, c.default || 0, c.skipped || 0, c.errors || 0, S.job && S.job.last ? L(`durée ${fmtTime(S.job.last.elapsed)}`, `duration ${fmtTime(S.job.last.elapsed)}`) : "", c.annotated || 0)),
         h("div", { class: "hint" }, icon("info", "", 16), h("div", {}, h("b", {}, "Que vérifier dans Live ? "), "Ouvrez une copie : les pistes dupliquées chargent leur instrument, l’originale est en sourdine ; le nouveau plugin d’effet est placé avant l’ancien, désactivé.")),
         h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Copie créée"), h("th", {}, "Dossier"), h("th", { style: "width:170px" }))), h("tbody", {}, rows))],
       null);
@@ -697,7 +699,7 @@
         startPolling(S.server.job.id, S.server.job.kind);
       } else if (S.server.analyzed) {
         S.selected = new Set(S.server.groups.filter((g) => g.selectable).map((g) => g.id));
-        S.view = S.server.summary && S.server.summary.to_convert ? "understand" : "empty";
+        S.view = S.server.summary && S.server.summary.actionable ? "understand" : "empty";
       }
     } catch (e) { S.error = e.message; S.view = "error"; }
     render();

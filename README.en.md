@@ -25,6 +25,7 @@ The app follows three steps, shown on the left of the window.
 **3 · Convert** — Progress is shown live. You can **stop at any time**: what is already done is kept, and “Resume” continues later. When it finishes, open the `… [ReAble].als` copies in Live: those are the ones to check. Not happy? **Undo** moves the copies to the Trash.
 
 ### What about plugins ReAble can't convert?
+- On every track whose plugin is missing and can't be converted, ReAble also writes an **info note** (plugin, preset if readable, reason) so you can recreate the sound. You can turn this off in the Review screen.
 - The **Missing plugins** button shows, for each plugin, which projects use it and what to do.
 - **Choose a replacement**: pick another plugin to use instead (a renamed plugin, or a different one that does the same job). The replacement starts with its default settings, and the old preset's name is written on the track.
 - **Request support** opens a pre-filled request so the plugin gets added.

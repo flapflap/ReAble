@@ -45,6 +45,14 @@ def set_track_block(existing: str, text: str) -> str:
     return (base + "\n\n" if base else "") + f"{TRACK_BEGIN}\n{text}\n{TRACK_END}"
 
 
+def get_track_block(text: str) -> str:
+    """Contenu du bloc ReAble d'un texte d'info de piste (chaîne vide s'il n'y en a pas)."""
+    m = _TRACK_BLOCK.search(text or "")
+    if not m:
+        return ""
+    return m.group(0)[len(TRACK_BEGIN):-len(TRACK_END)].strip()
+
+
 def strip_track_block(text: str) -> str:
     return _TRACK_BLOCK.sub("", text or "").strip()
 

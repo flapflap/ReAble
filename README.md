@@ -25,6 +25,7 @@ L'application suit trois étapes, indiquées à gauche de la fenêtre.
 **3 · Convertir** — La progression s'affiche en direct. Vous pouvez **arrêter à tout moment** : ce qui est fait est conservé, et « Reprendre » continue plus tard. À la fin, ouvrez les copies `… [ReAble].als` dans Live : ce sont elles qu'il faut vérifier. Un doute ? **Annuler** met les copies à la corbeille.
 
 ### Et pour les plugins que ReAble ne sait pas convertir ?
+- ReAble écrit aussi, sur chaque piste dont le plugin manque et ne peut pas être converti, un **texte d'info** (plugin, preset s'il est lisible, raison) pour que vous puissiez recréer le son. Option désactivable dans l'écran Valider.
 - Le bouton **Plugins manquants** donne, pour chaque plugin, les projets concernés et ce qu'il faut faire.
 - **Choisir un remplaçant** : indiquez un autre plugin à mettre à la place (un plugin renommé, ou un autre qui fait le même travail). Le remplaçant démarre avec ses réglages par défaut, le nom de l'ancien preset est noté sur la piste.
 - **Demander la prise en charge** ouvre une demande pré-remplie pour que le plugin soit ajouté.

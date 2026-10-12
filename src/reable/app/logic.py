@@ -14,12 +14,23 @@ from .. import __version__, api, batch, i18n, registry, trace
 from ..batch import ConvertOptions, PlanItem
 from ..jobs import JobBusy, JobManager
 
-KIND_ORDER = ["validated", "default", "template", "old", "unsupported", "done"]
+KIND_ORDER = ["validated", "default", "notes", "template", "old", "unsupported", "done"]
+NOTES_ID = "notes|||"
 
 
 def group_items(items: list[PlanItem]) -> list[dict]:
     """Regroupe le plan par conversion (ce que l'utilisateur comprend), pas par set."""
     groups: "OrderedDict[tuple, dict]" = OrderedDict()
+
+    def add(key, kind, title, it):
+        g = groups.setdefault(key, {"id": "|".join(key), "kind": kind, "title": title, "sets": set(), "instances": 0,
+                                    "plugins": set(), "targets": set(), "selectable": kind in ("validated", "default", "notes")})
+        if it.target_name:
+            g["targets"].add(it.target_name)
+        g["sets"].add(it.set_path)
+        g["instances"] += max(it.instances, 1)
+        g["plugins"].add(it.plugin)
+
     for it in items:
         if it.status in ("convertible", "converti"):
             kind = "default" if "n'est pas repris" in (it.reason or "") else "validated"
@@ -33,13 +44,9 @@ def group_items(items: list[PlanItem]) -> list[dict]:
             key, kind, title = ("template", it.target_name, "", ""), "template", f"Gabarit manquant : {it.target_name}"
         else:
             key, kind, title = ("unsupported", "", "", ""), "unsupported", "Plugins sans équivalent"
-        g = groups.setdefault(key, {"id": "|".join(key), "kind": kind, "title": title, "sets": set(), "instances": 0,
-                                    "plugins": set(), "targets": set(), "selectable": kind in ("validated", "default")})
-        if it.target_name:
-            g["targets"].add(it.target_name)
-        g["sets"].add(it.set_path)
-        g["instances"] += max(it.instances, 1)
-        g["plugins"].add(it.plugin)
+        add(key, kind, title, it)
+        if it.note and it.status in ("annotable", "annoté"):       # en plus de son groupe : le texte d'info sera écrit sur la piste
+            add(("notes", "", "", ""), "notes", "Plugins sans conversion : texte d'info", it)
     out = []
     for g in groups.values():
         out.append({**g, "sets": sorted(g["sets"]), "count": len(g["sets"]), "plugins": sorted(g["plugins"]),
@@ -53,6 +60,8 @@ def summarize(groups: list[dict]) -> dict:
     conv = by("validated") + by("default")
     return {
         "to_convert": len({s for g in conv for s in g["sets"]}),
+        "notes_only": len({s for g in by("notes") for s in g["sets"]}),
+        "actionable": len({s for g in conv + by("notes") for s in g["sets"]}),
         "default_settings": len({s for g in by("default") for s in g["sets"]}),
         "too_old": len({s for g in by("old") for s in g["sets"]}),
         "template_missing": len({s for g in by("template") for s in g["sets"]}),
@@ -118,7 +127,7 @@ class AppLogic:
         except (OSError, ValueError, TypeError):
             return ConvertOptions(replace_mode="duplicate_track")      # défaut de l'application : l'originale est gardée
 
-    PLAN_KEYS = {"only_missing", "families", "mapping", "skip_plugins", "if_exists", "state_mode"}
+    PLAN_KEYS = {"only_missing", "families", "mapping", "skip_plugins", "if_exists", "state_mode", "note_unconverted"}
 
     def set_options(self, data: dict) -> bool:
         """Enregistre les réglages ; renvoie True si le plan doit être recalculé (réglages qui changent les groupes)."""
@@ -169,10 +178,14 @@ class AppLogic:
     def _selected_items(self, group_ids: list[str] | None) -> list[PlanItem]:
         """Éléments du plan appartenant aux groupes cochés (seuls les groupes convertibles sont sélectionnables)."""
         if group_ids is None:
-            return [i for i in self.items if i.status in ("convertible", "converti")]
+            return [i for i in self.items if i.status in ("convertible", "converti") or (i.note and i.status in ("annotable", "annoté"))]
         wanted = set(group_ids)
         sel = []
         for it in self.items:
+            if it.note and it.status in ("annotable", "annoté"):
+                if NOTES_ID in wanted:
+                    sel.append(it)
+                continue
             if it.status not in ("convertible", "converti"):
                 continue
             kind = "default" if "n'est pas repris" in (it.reason or "") else "validated"
@@ -411,8 +424,10 @@ def _has_trace(p: Path) -> bool:
     """Le fichier porte-t-il une note ReAble ? (garde-fou : on ne met à la corbeille que nos propres copies)"""
     from .. import alsfile
     root = alsfile.load(p).getroot()
-    return any(trace.parse_note(d.find("Annotation").get("Value", "")) for d in root.iter("PluginDevice")
-               if d.find("Annotation") is not None)
+    if any(trace.parse_note(d.find("Annotation").get("Value", "")) for d in root.iter("PluginDevice")
+           if d.find("Annotation") is not None):
+        return True
+    return any(trace.get_track_block(a.get("Value", "")) for a in root.iter("Annotation"))      # copie « texte d'info seulement »
 
 
 def _counts(items: list[PlanItem]) -> dict:
@@ -425,7 +440,10 @@ def _counts(items: list[PlanItem]) -> dict:
                 per_set[it.set_path] = kind if it.set_path not in per_set or kind == "converted" else per_set[it.set_path]
         elif it.status == "ignoré":
             per_set.setdefault(it.set_path, "skipped")
-    c = {"converted": 0, "default": 0, "skipped": 0, "errors": 0}
+    for it in items:                                        # projet seulement annoté (aucune conversion)
+        if it.note and it.status == "annoté":
+            per_set.setdefault(it.set_path, "annotated")
+    c = {"converted": 0, "default": 0, "skipped": 0, "errors": 0, "annotated": 0}
     for kind in per_set.values():
         c[kind] += 1
     return c

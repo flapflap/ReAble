@@ -89,7 +89,7 @@ def test_group_items_and_summary():
     g = group_items(items)
     assert [x["kind"] for x in g] == ["validated", "default", "old", "unsupported", "done"]
     assert g[0]["count"] == 2 and g[0]["selectable"] and not g[2]["selectable"]
-    assert summarize(g) == {"to_convert": 3, "default_settings": 1, "too_old": 1, "template_missing": 0, "templates_needed": [],
+    assert summarize(g) == {"to_convert": 3, "notes_only": 0, "actionable": 3, "default_settings": 1, "too_old": 1, "template_missing": 0, "templates_needed": [],
                             "unsupported_plugins": 1, "already_done": 1}
 
 
@@ -174,7 +174,7 @@ def test_counts_are_per_project_not_per_plugin():
         return PlanItem(path, "P", "VST2", "T", 1, "", status, reason)
     c = _counts([it("/a", "converti"), it("/a", "converti", "n'est pas repris"), it("/b", "converti", "n'est pas repris"),
                  it("/c", "ignoré")])
-    assert c == {"converted": 1, "default": 1, "skipped": 1, "errors": 0}      # 3 projets, pas 4 conversions
+    assert c == {"converted": 1, "default": 1, "skipped": 1, "errors": 0, "annotated": 0}      # 3 projets, pas 4 conversions
 
 
 def test_missing_template_is_its_own_group_not_unsupported():
@@ -436,3 +436,56 @@ def test_intel_only_plugins_count_as_missing_on_apple_silicon(tmp_path, monkeypa
     ps = [Plugin("T", "Intel", "VST2", "Intel")]
     inventory.check(ps, inv)
     assert ps[0].install_status == "installé"
+
+
+def _note_item(set_path, plugin="Massive X", fmt="AU", status="bloqué"):
+    return PlanItem(set_path, plugin, fmt, status=status, note=True, instances=1,
+                    reason="pas de plugin VST3 compatible installé (famille non gérée ou absente)")
+
+
+def test_notes_group_comes_in_addition_to_the_original_group():
+    items = [_note_item("/a/Set A.als", status="annotable"), _note_item("/a/Set B.als", "Play", "VST2", status="annotable"),
+             PlanItem("/a/Set C.als", "Kontakt", "VST2", "Kontakt 8", status="convertible")]
+    groups = group_items(items)
+    kinds = [g["kind"] for g in groups]
+    assert kinds == ["validated", "notes", "unsupported"]
+    notes = next(g for g in groups if g["kind"] == "notes")
+    assert notes["selectable"] and notes["count"] == 2 and notes["id"] == "notes|||"
+    sm = summarize(groups)
+    assert sm["to_convert"] == 1 and sm["notes_only"] == 2 and sm["actionable"] == 3
+
+
+def test_selecting_the_notes_group_selects_the_annotable_items():
+    logic = AppLogic()
+    logic.items = [_note_item("/a/Set A.als", status="annotable"), PlanItem("/a/Set C.als", "Kontakt", "VST2", "Kontakt 8", status="convertible")]
+    assert [i.set_path for i in logic._selected_items(["notes|||"])] == ["/a/Set A.als"]
+    assert [i.set_path for i in logic._selected_items(None)] == ["/a/Set A.als", "/a/Set C.als"]
+
+
+@needs_set
+def test_info_note_is_written_on_the_track_of_an_unconvertible_plugin(tmp_path):
+    from reable import alsfile, trace
+    from reable.batch import ConvertOptions, run
+    from reable.app.logic import _has_trace
+    src = tmp_path / "Test.als"
+    shutil.copy(SET, src)
+    opts = ConvertOptions(out_dir=tmp_path / "out", if_exists="overwrite")
+    dry = [_note_item(str(src))]
+    run(dry, opts, dry_run=True, root_dir=tmp_path)
+    assert dry[0].status == "annotable" and not (tmp_path / "out").exists()          # essai à blanc : rien n'est écrit
+    items = [_note_item(str(src))]
+    res = run(items, opts, dry_run=False, root_dir=tmp_path)
+    assert items[0].status == "annoté" and len(res.written) == 1
+    root = alsfile.load(res.written[0]).getroot()
+    texts = [trace.get_track_block(a.get("Value", "")) for a in root.iter("Annotation")]
+    texts = [t for t in texts if t]
+    assert texts and all("Plugin manquant : Massive X (AU)" in t and "ReAble ne sait pas encore le convertir" in t for t in texts)
+    assert _has_trace(Path(res.written[0]))                                        # annulable : la copie est reconnue comme celle de ReAble
+    assert alsfile.load(src).getroot().find(".//Annotation") is not None            # l'original n'est pas touché
+    assert not any(trace.get_track_block(a.get("Value", "")) for a in alsfile.load(src).getroot().iter("Annotation"))
+
+
+def test_note_option_is_off_switchable():
+    from reable.batch import ConvertOptions
+    assert ConvertOptions().note_unconverted is True
+    assert ConvertOptions.from_dict({"note_unconverted": False}).note_unconverted is False

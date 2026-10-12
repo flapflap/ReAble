@@ -3,17 +3,19 @@ from __future__ import annotations
 
 import json
 import re
+import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import alsfile, trace
 from .adapters import state_note
 from . import i18n
+from .decoders import decode_state
 from .registry import allowed_families, definition_of, family_of
 from .inventory import Inventory
 from .jobs import CancelToken, OnEvent, Reporter
 from .model import Plugin, SetReport
-from .rewrite import check_tree, rewrite_tree
+from .rewrite import SOURCES, _find_devices, check_tree, rewrite_tree, track_of
 
 SOURCE_FORMATS = ("AU", "VST2", "VST3")   # VST3 seulement pour une mise à niveau vers un autre nom
 
@@ -37,6 +39,7 @@ class ConvertOptions:
     rename_template: str = "{track} [{from}→{to}]"   # variables : track plugin from to preset date
     missing_preset: str = "omit"              # omit | plugin | question
     track_info: bool = True                   # texte d'info de la piste (bas à gauche dans Live)
+    note_unconverted: bool = True             # texte d'info aussi sur les pistes dont le plugin manque et ne peut pas être converti
     track_info_template: str = ("Converti par ReAble le {date}\n{plugin} : {from} → {to}\n"
                                 "Preset d'origine : {preset}\n{state_note}\nPiste d'origine : {original_track}")
     # traçabilité
@@ -81,8 +84,9 @@ class PlanItem:
     target_name: str = ""
     instances: int = 0
     template: str = ""
-    status: str = "à essayer"                 # à essayer | convertible | converti | bloqué
+    status: str = "à essayer"                 # à essayer | convertible | converti | bloqué | annotable | annoté
     reason: str = ""
+    note: bool = False                        # bloqué, mais la piste peut recevoir un texte d'info (plugin, preset, raison)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -189,11 +193,13 @@ def plan(reports: list[SetReport], inv: Inventory, templates: dict, opts: Conver
             target = pick_target(p, inv, opts, templates)
             if target is None:
                 it.status, it.reason = "bloqué", "pas de plugin VST3 compatible installé (famille non gérée ou absente)"
+                it.note = opts.note_unconverted
             else:
                 tpl = templates.get(target.lower())
                 it.target_name = tpl[2] if tpl else target
                 if tpl is None:
                     it.status, it.reason = "bloqué", f"aucun gabarit VST3 « {target} » dans les sets analysés"
+                    it.note = opts.note_unconverted
                 else:
                     it.template = tpl[0]
         items += list(seen.values())
@@ -276,6 +282,43 @@ def _track_name_of(trk) -> str:
     return ""
 
 
+def annotate_unconverted(root, items: list[PlanItem]) -> dict[int, int]:
+    """Texte d'info sur les pistes dont le plugin manque et n'est pas converti : plugin, format, preset (s'il est lisible)
+    et pourquoi. Le texte s'ajoute au bloc ReAble de la piste (une piste peut aussi avoir un plugin converti).
+    Renvoie, par élément du plan (id()), le nombre de devices annotés."""
+    parents = {c: p for p in root.iter() for c in p}
+    blocks: dict[ET.Element, list[str]] = {}
+    done: dict[int, int] = {}
+    for it in items:
+        if it.source_format not in SOURCES:
+            continue
+        dev_tag, info_tag, get_state = SOURCES[it.source_format]
+        why = (i18n.tr("il manque un projet Live 12 contenant le plugin remplaçant en VST3")
+               if (it.reason or "").startswith("aucun gabarit") else i18n.tr("ReAble ne sait pas encore le convertir"))
+        for dev in _find_devices(root, dev_tag, info_tag, it.plugin):
+            trk = track_of(dev, parents)
+            if trk is None or trk.find("Name/Annotation") is None:
+                continue
+            try:
+                state = get_state(dev)
+                preset = ((decode_state(state, it.plugin) or ("",))[0] or "") if state else ""
+            except Exception:                                  # noqa: BLE001  un décodeur ne doit jamais faire échouer l'écriture
+                preset = ""
+            if preset.strip().lower() in ("presets", "default", "<default>"):
+                preset = ""
+            lines = [i18n.tr("Plugin manquant : {plugin} ({fmt})", plugin=it.plugin, fmt=it.source_format)]
+            if preset:
+                lines.append(i18n.tr("Preset d'origine : {preset}", preset=preset))
+            lines.append(i18n.tr("Non converti par ReAble : {why}", why=why))
+            blocks.setdefault(trk, []).append("\n".join(lines))
+            done[id(it)] = done.get(id(it), 0) + 1
+    for trk, texts in blocks.items():
+        ann = trk.find("Name/Annotation")
+        old = trace.get_track_block(ann.get("Value", ""))
+        ann.set("Value", trace.set_track_block(ann.get("Value", ""), (old + "\n\n" if old else "") + "\n\n".join(texts)))
+    return done
+
+
 def apply_track_info(root, opts: ConvertOptions) -> int:
     """Écrit le texte d'info des pistes converties ; avec duplicate_track, une phrase sur l'originale aussi."""
     if not opts.track_info:
@@ -348,9 +391,10 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
     for set_path, group in by_set.items():
         name = Path(set_path).stem
         rep.step("lecture", name, set_path)
-        pending = [g for g in group if g.status != "bloqué"]
-        if pending and resolve_output(_out_path(Path(set_path), root_dir, opts), opts.if_exists) is None:
-            for it in pending:
+        pending = [g for g in group if g.status != "bloqué" and not g.note]
+        noters = [g for g in group if g.note]
+        if (pending or noters) and resolve_output(_out_path(Path(set_path), root_dir, opts), opts.if_exists) is None:
+            for it in pending + noters:
                 it.status, it.reason = "ignoré", "déjà converti (le fichier de sortie existe)"
             rep.finish_item(name, "ignoré", "déjà converti", key=set_path)
             continue
@@ -371,7 +415,7 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
         baseline = set(check_tree(tree.getroot()))
         converted = 0
         for it in group:
-            if it.status == "bloqué":
+            if it.status == "bloqué" or it.note:
                 continue
             rep.step("conversion", name, set_path)
             if it.template not in tpl_cache:
@@ -384,7 +428,9 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
             if any(w.startswith(("Id en double", "Id de liste en double", "Attribut inconnu")) for w in warns):   # Live refuserait ce fichier
                 for g in group:
                     g.status, g.reason = "bloqué", "contrôle d'intégrité échoué : " + "; ".join(warns)
+                    g.note = False
                 converted = 0
+                noters = []
                 break
             if r.converted:
                 it.status = "convertible" if dry_run else "converti"
@@ -395,10 +441,18 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
                 it.status, it.reason = "bloqué", "; ".join(warns) or "rien à convertir"
         rep.step("contrôle", name, set_path)
         written, written_path = False, ""
+        annotated = 0
         if converted and not dry_run:
-            rep.step("écriture", name, set_path)          # dernier point d'arrêt : ensuite l'écriture atomique va à son terme
             apply_rename(tree.getroot(), opts)
             apply_track_info(tree.getroot(), opts)
+        if noters:
+            counts = annotate_unconverted(tree.getroot(), noters)
+            for it in noters:
+                if counts.get(id(it)):
+                    it.status = "annotable" if dry_run else "annoté"
+            annotated = sum(1 for it in noters if counts.get(id(it)))
+        if (converted or annotated) and not dry_run:
+            rep.step("écriture", name, set_path)          # dernier point d'arrêt : ensuite l'écriture atomique va à son terme
             dst = resolve_output(_out_path(Path(set_path), root_dir, opts), opts.if_exists)
             if dst.resolve() == Path(set_path).resolve():
                 raise ValueError("refus d'écraser l'original")
@@ -407,7 +461,7 @@ def run(items: list[PlanItem], opts: ConvertOptions, dry_run: bool, root_dir: Pa
             res.written.append(str(dst))
             written, written_path = True, str(dst)
         defaulted = any("réglages par défaut" in (g.reason or "") for g in group if g.status in ("converti", "convertible"))
-        outcome = ("réglages par défaut" if defaulted else "converti") if converted else "ignoré"
+        outcome = ("réglages par défaut" if defaulted else "converti") if converted else ("annoté" if annotated else "ignoré")
         rep.finish_item(name, outcome, path=written_path, key=set_path)
     rep.end(f"{len(res.written)} projet(s) écrit(s)" if not dry_run else "essai à blanc terminé")
     return res
