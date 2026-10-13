@@ -6,7 +6,7 @@
 
 A plugin was uninstalled, now exists only as VST3, or moved to a newer version (Massive as AU, Kontakt 5, Ozone 9…): Live shows it in red and the sound is gone. ReAble scans your projects, spots those plugins, and writes a **copy** of the project with the matching plugin, keeping the preset, settings and automations whenever it can.
 
-> ⚠️ **Beta (0.1.0-beta.2).** Your original projects are never modified (ReAble only writes copies), but **check every conversion in Live 12** before relying on it. Only plugins that have already been tested are converted; the others are reported. Apple Silicon Macs only for now. The app comes in English and French (picked automatically from your macOS language, changeable in Settings).
+> ⚠️ **Beta (0.1.0-beta.3).** Your original projects are never modified (ReAble only writes copies), but **check every conversion in Live 12** before relying on it. Only plugins that have already been tested are converted; the others are reported. Apple Silicon Macs only for now. The app comes in English and French (picked automatically from your macOS language, changeable in Settings).
 
 ## Install
 1. Download **[ReAble.dmg](https://github.com/flapflap/ReAble/releases/latest)**.
